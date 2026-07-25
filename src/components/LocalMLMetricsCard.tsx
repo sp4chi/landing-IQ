@@ -84,9 +84,14 @@ export const LocalMLMetricsCard: React.FC<LocalMLMetricsCardProps> = ({ metrics 
             </div>
 
             {/* Flesch Reading Ease */}
-            <div className="space-y-1.5">
+            <div
+              className="space-y-1.5 cursor-help group transition-colors p-1 rounded-md hover:bg-slate-50"
+              title="Flesch Reading Ease: Scores text readability from 0-100; higher scores indicate easier, more conversational reading."
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-600">Flesch Reading Ease</span>
+                <span className="text-xs font-semibold text-slate-600 border-b border-dashed border-slate-300">
+                  Flesch Reading Ease
+                </span>
                 <span className={`text-sm font-extrabold ${readability.isDegenerate ? 'text-amber-600' : readability.fleschReadingEase >= 70 ? 'text-emerald-600' : readability.fleschReadingEase >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
                   {readability.isDegenerate ? 'N/A' : `${readability.fleschReadingEase}/100`}
                 </span>
@@ -95,19 +100,34 @@ export const LocalMLMetricsCard: React.FC<LocalMLMetricsCardProps> = ({ metrics 
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">Grade Level</div>
+              <div
+                className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-lg border border-slate-200 text-center cursor-help transition-all group"
+                title="Flesch-Kincaid: Estimates US school grade level required to understand text based on average sentence length and syllable count per word."
+              >
+                <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5 group-hover:text-slate-800">
+                  Grade Level
+                </div>
                 <div className="text-xl font-extrabold text-slate-900">
                   {readability.isDegenerate ? '—' : readability.fleschKincaidGrade}
                 </div>
-                <div className="text-[10px] text-slate-400">Flesch-Kincaid</div>
+                <div className="text-[10px] text-slate-400 border-b border-dashed border-slate-300 inline-block">
+                  Flesch-Kincaid
+                </div>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">Fog Index</div>
+
+              <div
+                className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-lg border border-slate-200 text-center cursor-help transition-all group"
+                title="Gunning Fog Index: Estimates years of formal education needed to comprehend text based on complex multi-syllable words."
+              >
+                <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5 group-hover:text-slate-800">
+                  Fog Index
+                </div>
                 <div className="text-xl font-extrabold text-slate-900">
                   {readability.isDegenerate ? '—' : readability.gunningFog}
                 </div>
-                <div className="text-[10px] text-slate-400">Gunning Fog</div>
+                <div className="text-[10px] text-slate-400 border-b border-dashed border-slate-300 inline-block">
+                  Gunning Fog
+                </div>
               </div>
             </div>
 
