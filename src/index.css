@@ -46,3 +46,12 @@
   outline: 2px solid #F5A623;
   outline-offset: 2px;
 }
+
+/* Hide scrollbar utility for clean horizontal/vertical scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}

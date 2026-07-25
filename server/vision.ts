@@ -19,12 +19,15 @@ export function cleanHtmlToText(html: string): string {
     .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
     .replace(/<header[\s\S]*?<\/header>/gi, ' ')
     .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<\/(p|div|li|h1|h2|h3|h4|h5|h6|section|article|td|tr)>/gi, '. ')
+    .replace(/<br\s*\/?>/gi, '. ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
+    .replace(/\.\s*\./g, '.')
     .replace(/\s+/g, ' ')
     .trim();
 }

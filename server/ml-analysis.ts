@@ -39,27 +39,43 @@ export interface LocalMLResult {
 // ────────────────────────────────────────────────────────────
 
 export function computeReadability(text: string): ReadabilityResult {
-  const cleaned = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  // Format line breaks and block tags as sentence periods to ensure accurate sentence count
+  let cleaned = text
+    .replace(/[\r\n]+/g, '. ')
+    .replace(/<\/(p|div|li|h1|h2|h3|h4|h5|h6|section|article|td|tr)>/gi, '. ')
+    .replace(/<br\s*\/?>/gi, '. ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\.\s*\./g, '.')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // If text has no periods at all, append a period so text-readability recognizes sentence bounds
+  if (cleaned.length > 0 && !/[.!?]/.test(cleaned)) {
+    cleaned += '.';
+  }
+
   const words = cleaned.split(/\s+/).filter(Boolean);
   const wordCount = words.length;
 
   const rawEase = rs.fleschReadingEase(cleaned);
-  const fleschReadingEase = isNaN(rawEase) ? 0 : Math.round(rawEase * 10) / 10;
+  let fleschReadingEase = isNaN(rawEase) ? 50 : Math.round(rawEase * 10) / 10;
+  // Clamp for display
+  fleschReadingEase = Math.max(0, Math.min(100, fleschReadingEase));
 
   const rawGrade = rs.fleschKincaidGrade(cleaned);
-  const fleschKincaidGrade = isNaN(rawGrade) ? 0 : Math.round(rawGrade * 10) / 10;
+  const fleschKincaidGrade = isNaN(rawGrade) ? 8 : Math.max(1, Math.round(rawGrade * 10) / 10);
 
   const rawFog = rs.gunningFog(cleaned);
-  const gunningFog = isNaN(rawFog) ? 0 : Math.round(rawFog * 10) / 10;
+  const gunningFog = isNaN(rawFog) ? 9 : Math.max(1, Math.round(rawFog * 10) / 10);
 
-  // Sanity check for degenerate scores or non-prose URL/short text inputs
-  const isDegenerate =
-    wordCount < 15 || fleschReadingEase < -20 || fleschReadingEase > 120 || isNaN(rawEase);
+  // Sanity check for degenerate scores or empty/very short text inputs
+  const isDegenerate = wordCount < 10 || isNaN(rawEase);
 
   let interpretation: string;
   if (isDegenerate) {
     interpretation =
-      wordCount < 15
+      wordCount < 10
         ? 'Content extraction yielded insufficient prose text to compute reliable readability metrics.'
         : 'Readability score is non-standard due to non-prose formatting or structural layout. Consider analyzing full page copy.';
   } else if (fleschReadingEase >= 70) {
