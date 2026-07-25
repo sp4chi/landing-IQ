@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { dbService } from '../src/db/index.js';
 import { capturePageScreenshot, generateMockScreenshotBase64, ScreenshotResult } from './vision.js';
 import { executeAIAnalysis } from './ai-provider.js';
+import { runLocalMLAnalysis } from './ml-analysis.js';
 
 export const analyzerRouter = Router();
 
@@ -240,9 +241,41 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
 
     let resultJson: any = null;
 
+    // ── Local ML Analysis (deterministic, no API key, never fails) ──────────
+    console.log('[Analyzer] Running local ML/NLP analysis...');
+    const mlResults = await runLocalMLAnalysis({
+      content,
+      screenshotBase64: screenshot?.base64 ?? null,
+    });
+
+    // Build grounding context string to append to LLM prompt
+    const mlGrounding = [
+      '',
+      '--- Independently Computed Metrics (factual grounding — do not contradict these) ---',
+      mlResults.readability
+        ? `Flesch Reading Ease: ${mlResults.readability.fleschReadingEase} — ${mlResults.readability.interpretation}`
+        : null,
+      mlResults.readability
+        ? `Flesch-Kincaid Grade Level: ${mlResults.readability.fleschKincaidGrade} | Gunning Fog: ${mlResults.readability.gunningFog}`
+        : null,
+      mlResults.keywords.length > 0
+        ? `Extracted top keywords (TF-IDF from actual text): ${mlResults.keywords.join(', ')}`
+        : null,
+      mlResults.colorContrast
+        ? `Color contrast (palette-level, dominant image colors): min ${mlResults.colorContrast.minContrastRatio}:1, max ${mlResults.colorContrast.maxContrastRatio}:1 across dominant palette colors (WCAG AA normal-text threshold is 4.5:1) — WCAG AA Pass: ${mlResults.colorContrast.wcagAAPass}`
+        : null,
+      '--- End Independently Computed Metrics ---',
+      '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    // Append ML grounding context to user content before sending to LLM
+    const enrichedContent = content + mlGrounding;
+
     try {
       const aiResult = await executeAIAnalysis({
-        content,
+        content: enrichedContent,
         systemPrompt: SYSTEM_PROMPT,
         screenshot: screenshot ? { base64: screenshot.base64, mimeType: screenshot.mimeType } : null,
       });
@@ -269,6 +302,13 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
       resultJson.screenshot_base64 = screenshot.base64;
       resultJson.screenshot_url = screenshot.url;
     }
+
+    // Merge local ML metrics into resultJson (always saved to DB alongside AI results)
+    resultJson.local_ml_metrics = {
+      readability: mlResults.readability || null,
+      keywords: mlResults.keywords || [],
+      colorContrast: mlResults.colorContrast || null,
+    };
 
     // Save report in database
     const savedReport = await dbService.createReport({

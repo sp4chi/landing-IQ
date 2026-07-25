@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { ChatCopilot } from '../components/ChatCopilot';
 import { ABVariantsCard } from '../components/ABVariantsCard';
+import { LocalMLMetricsCard } from '../components/LocalMLMetricsCard';
 import {
   CheckCircle2,
   Zap,
@@ -77,6 +78,22 @@ interface ResultsPageProps {
           hypothesis: string;
         };
       };
+      local_ml_metrics?: {
+        readability?: {
+          fleschReadingEase: number;
+          fleschKincaidGrade: number;
+          gunningFog: number;
+          interpretation: string;
+        } | null;
+        keywords?: string[];
+        colorContrast?: {
+          dominantColors: string[];
+          minContrastRatio: number;
+          maxContrastRatio: number;
+          wcagAAPass: boolean;
+          note: string;
+        } | null;
+      } | null;
     };
     createdAt: string | Date;
   };
@@ -376,6 +393,11 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
 
       {/* Detailed Analysis Breakdown */}
       <div className="space-y-8">
+        {/* Independently Computed Metrics Card — deterministic NLP/ML, no AI */}
+        {data.local_ml_metrics && (
+          <LocalMLMetricsCard metrics={data.local_ml_metrics} />
+        )}
+
         {/* Headlines Section */}
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-card">
           <div className="flex items-center space-x-2 text-navy-900 mb-4">
