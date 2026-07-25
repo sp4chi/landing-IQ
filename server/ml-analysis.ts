@@ -17,6 +17,7 @@ export interface ReadabilityResult {
   fleschKincaidGrade: number;
   gunningFog: number;
   interpretation: string;
+  isDegenerate?: boolean;
 }
 
 export interface ColorContrastResult {
@@ -39,23 +40,46 @@ export interface LocalMLResult {
 
 export function computeReadability(text: string): ReadabilityResult {
   const cleaned = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
 
-  const fleschReadingEase = Math.round(rs.fleschReadingEase(cleaned) * 10) / 10;
-  const fleschKincaidGrade = Math.round(rs.fleschKincaidGrade(cleaned) * 10) / 10;
-  const gunningFog = Math.round(rs.gunningFog(cleaned) * 10) / 10;
+  const rawEase = rs.fleschReadingEase(cleaned);
+  const fleschReadingEase = isNaN(rawEase) ? 0 : Math.round(rawEase * 10) / 10;
+
+  const rawGrade = rs.fleschKincaidGrade(cleaned);
+  const fleschKincaidGrade = isNaN(rawGrade) ? 0 : Math.round(rawGrade * 10) / 10;
+
+  const rawFog = rs.gunningFog(cleaned);
+  const gunningFog = isNaN(rawFog) ? 0 : Math.round(rawFog * 10) / 10;
+
+  // Sanity check for degenerate scores or non-prose URL/short text inputs
+  const isDegenerate =
+    wordCount < 15 || fleschReadingEase < -20 || fleschReadingEase > 120 || isNaN(rawEase);
 
   let interpretation: string;
-  if (fleschReadingEase >= 70) {
+  if (isDegenerate) {
+    interpretation =
+      wordCount < 15
+        ? 'Content extraction yielded insufficient prose text to compute reliable readability metrics.'
+        : 'Readability score is non-standard due to non-prose formatting or structural layout. Consider analyzing full page copy.';
+  } else if (fleschReadingEase >= 70) {
     interpretation = 'Easy to read — accessible to most visitors (age 13+).';
   } else if (fleschReadingEase >= 50) {
     interpretation = 'Moderately readable — suitable for high-school educated visitors.';
   } else if (fleschReadingEase >= 30) {
     interpretation = 'Difficult to read — consider simplifying sentence structure for broader audience reach.';
   } else {
-    interpretation = 'Very difficult to read — typically suitable only for academic or specialist audiences. Strongly recommend simplification.';
+    interpretation =
+      'Very difficult to read — typically suitable only for academic or specialist audiences. Recommend simplifying sentence structure.';
   }
 
-  return { fleschReadingEase, fleschKincaidGrade, gunningFog, interpretation };
+  return {
+    fleschReadingEase,
+    fleschKincaidGrade,
+    gunningFog,
+    interpretation,
+    isDegenerate,
+  };
 }
 
 // ────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ export interface ReadabilityResult {
   fleschKincaidGrade: number;
   gunningFog: number;
   interpretation: string;
+  isDegenerate?: boolean;
 }
 
 export interface ColorContrastResult {
@@ -70,38 +71,49 @@ export const LocalMLMetricsCard: React.FC<LocalMLMetricsCardProps> = ({ metrics 
         {/* ── Readability ── */}
         {readability && (
           <div className="space-y-4 p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex items-center space-x-2 mb-3">
-              <BookOpen className="w-5 h-5 text-slate-600" />
-              <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Text Readability Scores</h4>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-5 h-5 text-slate-600" />
+                <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Text Readability Scores</h4>
+              </div>
+              {readability.isDegenerate && (
+                <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                  Extraction Warning
+                </span>
+              )}
             </div>
 
             {/* Flesch Reading Ease */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-600">Flesch Reading Ease</span>
-                <span className={`text-sm font-extrabold ${readability.fleschReadingEase >= 70 ? 'text-emerald-600' : readability.fleschReadingEase >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {readability.fleschReadingEase}/100
+                <span className={`text-sm font-extrabold ${readability.isDegenerate ? 'text-amber-600' : readability.fleschReadingEase >= 70 ? 'text-emerald-600' : readability.fleschReadingEase >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {readability.isDegenerate ? 'N/A' : `${readability.fleschReadingEase}/100`}
                 </span>
               </div>
-              <ReadabilityBar score={readability.fleschReadingEase} />
+              {!readability.isDegenerate && <ReadabilityBar score={readability.fleschReadingEase} />}
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">Grade Level</div>
-                <div className="text-xl font-extrabold text-slate-900">{readability.fleschKincaidGrade}</div>
+                <div className="text-xl font-extrabold text-slate-900">
+                  {readability.isDegenerate ? '—' : readability.fleschKincaidGrade}
+                </div>
                 <div className="text-[10px] text-slate-400">Flesch-Kincaid</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">Fog Index</div>
-                <div className="text-xl font-extrabold text-slate-900">{readability.gunningFog}</div>
+                <div className="text-xl font-extrabold text-slate-900">
+                  {readability.isDegenerate ? '—' : readability.gunningFog}
+                </div>
                 <div className="text-[10px] text-slate-400">Gunning Fog</div>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-600 leading-relaxed">{readability.interpretation}</p>
+            <div className={`p-3 rounded-lg border flex items-start space-x-2 ${readability.isDegenerate ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+              <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${readability.isDegenerate ? 'text-amber-600' : 'text-slate-500'}`} />
+              <p className="text-xs leading-relaxed">{readability.interpretation}</p>
             </div>
           </div>
         )}

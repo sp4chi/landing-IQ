@@ -4,14 +4,64 @@ export interface ScreenshotResult {
   base64: string;
   mimeType: 'image/png' | 'image/jpeg';
   url: string;
+  extractedText?: string;
+}
+
+/**
+ * Clean raw HTML content into plain text prose
+ */
+export function cleanHtmlToText(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+    .replace(/<header[\s\S]*?<\/header>/gi, ' ')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Fetch raw page text content via HTTP fetch if Playwright is unavailable
+ */
+export async function fetchWebpageText(cleanUrl: string): Promise<string> {
+  try {
+    const res = await fetch(cleanUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) {
+      const html = await res.text();
+      const extracted = cleanHtmlToText(html);
+      if (extracted.length > 50) {
+        console.log(`[Vision API Fallback] Extracted ${extracted.length} chars of live webpage text via HTTP fetch`);
+        return extracted;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[Vision API Fallback] HTTP text fetch failed for ${cleanUrl}: ${err?.message || err}`);
+  }
+  return '';
 }
 
 /**
  * Fallback cloud screenshot fetcher using public Microlink & WordPress Mshots APIs
- * Ensures 100% real webpage screenshot capture even if Playwright binary is missing in cloud containers like Render.
  */
 async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult | null> {
   console.log(`[Vision API Fallback] Fetching live web screenshot via Cloud Screenshot Service for: ${cleanUrl}...`);
+  const pageText = await fetchWebpageText(cleanUrl);
+
   try {
     // 1. Try Microlink Public Screenshot API
     const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false`);
@@ -29,6 +79,7 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
               base64,
               mimeType: 'image/png',
               url: cleanUrl,
+              extractedText: pageText,
             };
           }
         }
@@ -51,6 +102,7 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
           base64,
           mimeType: 'image/png',
           url: cleanUrl,
+          extractedText: pageText,
         };
       }
     }
@@ -63,6 +115,7 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
 
 /**
  * Capture a visual screenshot of a given landing page URL using Playwright Chromium with Cloud Screenshot Fallback.
+ * Also extracts actual inner text of the page body.
  */
 export async function capturePageScreenshot(targetUrl: string): Promise<ScreenshotResult | null> {
   let cleanUrl = targetUrl.trim();
@@ -71,6 +124,8 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
   }
 
   let browser = null;
+  let extractedText = '';
+
   try {
     if (process.env.PLAYWRIGHT_BROWSERS_PATH === undefined) {
       process.env.PLAYWRIGHT_BROWSERS_PATH = '0';
@@ -108,6 +163,15 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
     // Short pause for CSS/animations to stabilize
     await page.waitForTimeout(1000);
 
+    // Extract actual page text body via Playwright page.innerText('body')
+    try {
+      const rawBodyText = await page.innerText('body');
+      extractedText = rawBodyText.replace(/\s+/g, ' ').trim();
+      console.log(`[Vision] Playwright extracted ${extractedText.length} chars of page text`);
+    } catch (txtErr: any) {
+      console.warn(`[Vision] Could not extract page.innerText: ${txtErr?.message}`);
+    }
+
     const buffer = await page.screenshot({
       type: 'png',
       fullPage: false, // Capture above-the-fold hero section
@@ -120,6 +184,7 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
       base64,
       mimeType: 'image/png',
       url: cleanUrl,
+      extractedText: extractedText || undefined,
     };
   } catch (err: any) {
     console.warn(`[Vision] Local Playwright screenshot capture failed for ${cleanUrl}: ${err?.message || err}. Switch to Cloud Screenshot Service fallback...`);
@@ -167,5 +232,6 @@ export function generateMockScreenshotBase64(): ScreenshotResult {
     base64,
     mimeType: 'image/png',
     url: 'https://landingiq-demo.app',
+    extractedText: 'LandingIQ Demo Application. Stop guessing why visitors do not convert. Instant multimodal visual audits and CRO recommendations.',
   };
 }

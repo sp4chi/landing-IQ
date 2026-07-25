@@ -239,12 +239,21 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
       screenshot = await capturePageScreenshot(targetUrl);
     }
 
+    // Determine actual page prose content to analyze (extract page text if input was a raw URL)
+    let contentToAnalyze = content;
+    if (screenshot?.extractedText && (isInputUrl || content.length < 100)) {
+      console.log(`[Analyzer] Using extracted webpage text (${screenshot.extractedText.length} chars) instead of raw URL string.`);
+      contentToAnalyze = screenshot.extractedText;
+    }
+
+    console.log(`[Analyzer] ML Input Content Sample (${contentToAnalyze.length} chars): "${contentToAnalyze.slice(0, 180)}..."`);
+
     let resultJson: any = null;
 
     // ── Local ML Analysis (deterministic, no API key, never fails) ──────────
     console.log('[Analyzer] Running local ML/NLP analysis...');
     const mlResults = await runLocalMLAnalysis({
-      content,
+      content: contentToAnalyze,
       screenshotBase64: screenshot?.base64 ?? null,
     });
 
@@ -271,7 +280,7 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
       .join('\n');
 
     // Append ML grounding context to user content before sending to LLM
-    const enrichedContent = content + mlGrounding;
+    const enrichedContent = contentToAnalyze + mlGrounding;
 
     try {
       const aiResult = await executeAIAnalysis({
