@@ -18,7 +18,7 @@ export interface AIProviderResult {
   data: any;
 }
 
-export type AIProviderType = 'gemini' | 'anthropic' | 'openai';
+export type AIProviderType = 'gemini' | 'groq' | 'huggingface' | 'anthropic' | 'openai';
 
 export interface ResolvedConfig {
   provider: AIProviderType;
@@ -36,6 +36,12 @@ function classifyKey(key: string, suggestedProvider?: AIProviderType): ResolvedC
 
   if (trimmed.startsWith('AIza')) {
     return { provider: 'gemini', apiKey: trimmed };
+  }
+  if (trimmed.startsWith('gsk_')) {
+    return { provider: 'groq', apiKey: trimmed };
+  }
+  if (trimmed.startsWith('hf_')) {
+    return { provider: 'huggingface', apiKey: trimmed };
   }
   if (trimmed.startsWith('sk-ant')) {
     return { provider: 'anthropic', apiKey: trimmed };
@@ -70,6 +76,12 @@ export function getAllConfiguredProviders(): ResolvedConfig[] {
   }
   if (process.env.GEMINI_API_KEY) {
     add(classifyKey(process.env.GEMINI_API_KEY, 'gemini'));
+  }
+  if (process.env.GROQ_API_KEY) {
+    add(classifyKey(process.env.GROQ_API_KEY, 'groq'));
+  }
+  if (process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY) {
+    add(classifyKey((process.env.HF_API_KEY || process.env.HUGGINGFACE_API_KEY)!, 'huggingface'));
   }
   if (process.env.ANTHROPIC_API_KEY) {
     add(classifyKey(process.env.ANTHROPIC_API_KEY, 'anthropic'));
@@ -136,6 +148,123 @@ async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Pr
       return JSON.parse(cleanJsonStr);
     } catch (err: any) {
       console.warn(`[AI Provider] Gemini model '${modelName}' attempt failed (${err?.message || err}). Trying next candidate model...`);
+      lastError = err;
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Analyze landing page using Groq Cloud API (Free Tier, Llama 3.2 Vision)
+ */
+async function analyzeWithGroq(apiKey: string, request: AIAnalysisRequest): Promise<any> {
+  console.log('[AI Provider] Executing Landing Page Analysis via Groq Cloud...');
+  const groq = new OpenAI({
+    apiKey,
+    baseURL: 'https://api.groq.com/openai/v1',
+  });
+
+  const candidateModels = [
+    'llama-3.2-11b-vision-instruct',
+    'llama-3.2-90b-vision-instruct',
+    'llama-3.3-70b-versatile',
+  ];
+
+  let lastError: any = null;
+  for (const modelName of candidateModels) {
+    try {
+      const userContent: any[] = [];
+      if (request.screenshot && request.screenshot.base64) {
+        userContent.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:${request.screenshot.mimeType || 'image/png'};base64,${request.screenshot.base64}`,
+          },
+        });
+        userContent.push({
+          type: 'text',
+          text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`,
+        });
+      } else {
+        userContent.push({
+          type: 'text',
+          text: `Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`,
+        });
+      }
+
+      const response = await groq.chat.completions.create({
+        model: modelName,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: request.systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+      });
+
+      const rawContent = response.choices[0]?.message?.content || '';
+      const cleanJsonStr = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+      return JSON.parse(cleanJsonStr);
+    } catch (err: any) {
+      console.warn(`[AI Provider] Groq model '${modelName}' attempt failed (${err?.message || err}). Trying next model...`);
+      lastError = err;
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Analyze landing page using Hugging Face Serverless Inference API (Qwen 2.5 Vision / Llama 3.2 Vision)
+ */
+async function analyzeWithHuggingFace(apiKey: string, request: AIAnalysisRequest): Promise<any> {
+  console.log('[AI Provider] Executing Landing Page Analysis via Hugging Face Inference API...');
+  const hf = new OpenAI({
+    apiKey,
+    baseURL: 'https://router.huggingface.co/hf-inference/v1',
+  });
+
+  const candidateModels = [
+    'Qwen/Qwen2.5-VL-72B-Instruct',
+    'meta-llama/Llama-3.2-11B-Vision-Instruct',
+  ];
+
+  let lastError: any = null;
+  for (const modelName of candidateModels) {
+    try {
+      const userContent: any[] = [];
+      if (request.screenshot && request.screenshot.base64) {
+        userContent.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:${request.screenshot.mimeType || 'image/png'};base64,${request.screenshot.base64}`,
+          },
+        });
+        userContent.push({
+          type: 'text',
+          text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`,
+        });
+      } else {
+        userContent.push({
+          type: 'text',
+          text: `Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`,
+        });
+      }
+
+      const response = await hf.chat.completions.create({
+        model: modelName,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: request.systemPrompt },
+          { role: 'user', content: userContent },
+        ],
+      });
+
+      const rawContent = response.choices[0]?.message?.content || '';
+      const cleanJsonStr = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+      return JSON.parse(cleanJsonStr);
+    } catch (err: any) {
+      console.warn(`[AI Provider] Hugging Face model '${modelName}' attempt failed (${err?.message || err}). Trying next model...`);
       lastError = err;
     }
   }
@@ -234,7 +363,7 @@ async function analyzeWithOpenAI(apiKey: string, request: AIAnalysisRequest): Pr
 export async function executeAIAnalysis(request: AIAnalysisRequest): Promise<AIProviderResult | null> {
   const configs = getAllConfiguredProviders();
   if (configs.length === 0) {
-    console.log('[AI Provider] No valid AI API key detected (AI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY). Using fallback audit.');
+    console.log('[AI Provider] No valid AI API key detected (AI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, HF_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY). Using fallback audit.');
     return null;
   }
 
@@ -245,6 +374,10 @@ export async function executeAIAnalysis(request: AIAnalysisRequest): Promise<AIP
       let data: any = null;
       if (provider === 'gemini') {
         data = await analyzeWithGemini(apiKey, request);
+      } else if (provider === 'groq') {
+        data = await analyzeWithGroq(apiKey, request);
+      } else if (provider === 'huggingface') {
+        data = await analyzeWithHuggingFace(apiKey, request);
       } else if (provider === 'anthropic') {
         data = await analyzeWithAnthropic(apiKey, request);
       } else if (provider === 'openai') {
