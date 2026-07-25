@@ -218,7 +218,6 @@ export function getCallbackUrl(req: any): string {
   if (
     envCallback &&
     !envCallback.includes('your_') &&
-    !envCallback.includes('localhost') &&
     envCallback.trim() !== ''
   ) {
     return envCallback.trim();
@@ -236,7 +235,7 @@ export function getCallbackUrl(req: any): string {
     return `https://${process.env.VERCEL_URL}/api/auth/google/callback`;
   }
 
-  return envCallback || 'http://localhost:3000/api/auth/google/callback';
+  return 'http://localhost:3000/api/auth/google/callback';
 }
 
 // Google OAuth routes
