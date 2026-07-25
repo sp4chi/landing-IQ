@@ -40,7 +40,7 @@ export async function fetchWebpageText(cleanUrl: string): Promise<string> {
     const res = await fetch(cleanUrl, {
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       },
       signal: AbortSignal.timeout(8000),
     });
@@ -66,11 +66,11 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
   const pageText = await fetchWebpageText(cleanUrl);
 
   try {
-    // 1. Try Microlink Public Screenshot API with 3.5s delay for page hydration
-    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false&waitForTimeout=3500&waitUntil=networkidle`);
+    // 1. Try Microlink Public Screenshot API
+    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&embed=screenshot.url`);
     if (microLinkRes.ok) {
       const json = await microLinkRes.json();
-      const screenshotUrl = json.data?.screenshot?.url;
+      const screenshotUrl = json.data?.screenshot?.url || json.url;
       if (screenshotUrl) {
         const imgRes = await fetch(screenshotUrl);
         if (imgRes.ok) {
@@ -118,7 +118,6 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
 
 /**
  * Capture a visual screenshot of a given landing page URL using Playwright Chromium with Cloud Screenshot Fallback.
- * Also extracts actual inner text of the page body.
  */
 export async function capturePageScreenshot(targetUrl: string): Promise<ScreenshotResult | null> {
   let cleanUrl = targetUrl.trim();
@@ -143,7 +142,6 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
         '--disable-gpu',
       ],
     });
@@ -152,26 +150,25 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
       viewport: { width: 1280, height: 800 },
       deviceScaleFactor: 1,
       userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      extraHTTPHeaders: {
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
     });
 
     const page = await context.newPage();
     
-    // Navigate with generous timeout and full load strategy
-    try {
-      await page.goto(cleanUrl, {
-        waitUntil: 'load',
-        timeout: 25000,
-      });
-      // Additional check to wait for network connections & fonts to settle
-      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
-    } catch (gotoErr: any) {
-      console.warn(`[Vision] Navigation warning for ${cleanUrl}: ${gotoErr?.message || gotoErr}. Proceeding to capture current state...`);
-    }
+    // Navigate with domcontentloaded for fast reliable load
+    await page.goto(cleanUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
 
-    // 3.5 second stabilization pause for React hydration, CSS animations, fonts, and hero images
-    console.log(`[Vision] Pausing 3.5s for page rendering, fonts, and hero images to stabilize...`);
-    await page.waitForTimeout(3500);
+    // Pause 2 seconds for styles, fonts, and hero assets to render
+    await page.waitForTimeout(2000);
+
+    // Ensure scroll position is at top hero section
+    await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
 
     // Extract actual page text body via Playwright page.innerText('body')
     try {
