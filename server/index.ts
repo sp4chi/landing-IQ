@@ -20,6 +20,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Enable reverse proxy trust for Render/Vercel HTTPS session cookie support
+app.set('trust proxy', 1);
+
 // Body parsing middleware
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
