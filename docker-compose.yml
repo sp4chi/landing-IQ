@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  landingiq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: landingiq-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - PLAYWRIGHT_BROWSERS_PATH=0
+    # Optional environment file for API keys (e.g. GEMINI_API_KEY, ANTHROPIC_API_KEY)
+    env_file:
+      - .env
