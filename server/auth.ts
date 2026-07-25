@@ -213,6 +213,32 @@ authRouter.get('/me', (req, res) => {
   return res.json({ user: { id: user.id, email: user.email, createdAt: user.createdAt } });
 });
 
+export function getCallbackUrl(req: any): string {
+  const envCallback = process.env.GOOGLE_CALLBACK_URL;
+  if (
+    envCallback &&
+    !envCallback.includes('your_') &&
+    !envCallback.includes('localhost') &&
+    envCallback.trim() !== ''
+  ) {
+    return envCallback.trim();
+  }
+
+  if (req) {
+    const host = (req.headers['x-forwarded-host'] as string) || req.headers.host;
+    const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+    if (host) {
+      return `${proto}://${host}/api/auth/google/callback`;
+    }
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}/api/auth/google/callback`;
+  }
+
+  return envCallback || 'http://localhost:3000/api/auth/google/callback';
+}
+
 // Google OAuth routes
 authRouter.get('/google', (req, res, next) => {
   if (!isGoogleOauthConfigured()) {
@@ -220,7 +246,8 @@ authRouter.get('/google', (req, res, next) => {
       error: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env',
     });
   }
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  const callbackURL = getCallbackUrl(req);
+  passport.authenticate('google', { scope: ['profile', 'email'], callbackURL } as any)(req, res, next);
 });
 
 authRouter.get(
@@ -229,7 +256,8 @@ authRouter.get(
     if (!isGoogleOauthConfigured()) {
       return res.redirect('/#login?error=google_not_configured');
     }
-    passport.authenticate('google', { failureRedirect: '/#login?error=google_failed' })(req, res, next);
+    const callbackURL = getCallbackUrl(req);
+    passport.authenticate('google', { failureRedirect: '/#login?error=google_failed', callbackURL } as any)(req, res, next);
   },
   (req, res) => {
     req.session.save((err) => {
