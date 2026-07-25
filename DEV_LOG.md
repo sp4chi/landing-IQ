@@ -46,7 +46,7 @@
   - [`src/App.tsx`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/src/App.tsx): Updated footer credits to `React, Express, Drizzle ORM & Multi-Model Generative AI`.
   - [`server/analyzer.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/analyzer.ts): Updated fallback SEO meta description.
 
-### 6. Interactive AI Chat Copilot Engine ([`src/components/ChatCopilot.tsx`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/src/components/ChatCopilot.tsx) & [`server/chat.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/chat.ts))
+### 5. Interactive AI Chat Copilot Engine ([`src/components/ChatCopilot.tsx`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/src/components/ChatCopilot.tsx) & [`server/chat.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/chat.ts))
 - **Objective**: Provide a live, interactive conversational widget on the audit report page.
 - **Context Re-use**: Ingests full report JSON, visual metrics, headline recommendations, CTA suggestions, SEO, and accessibility issues into system prompt.
 - **Multi-Provider Conversational Failover**: Added `executeAIChat` in `server/ai-provider.ts` supporting multi-turn chat across Gemini, Groq, Hugging Face, Anthropic, and OpenAI.
