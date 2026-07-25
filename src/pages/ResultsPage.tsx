@@ -155,7 +155,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           </h2>
           <ScoreGauge score={report.conversionScore} size={180} strokeWidth={14} />
           <p className="text-xs text-gray-500 mt-4 max-w-xs">
-            Evaluated against top SaaS & e-commerce conversion benchmarks using Claude 3.5.
+            Evaluated against top SaaS & e-commerce conversion benchmarks using Multimodal AI.
           </p>
         </div>
 
@@ -197,7 +197,7 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
             <div>
               <div className="inline-flex items-center space-x-1.5 text-xs font-bold uppercase text-amber tracking-wider mb-0.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Playwright + Claude 3.5 Vision Audit</span>
+                <span>Playwright + Multimodal AI Vision Audit</span>
               </div>
               <h2 className="text-xl font-bold font-display text-navy-900">
                 Visual Screenshot & Design Usability Audit

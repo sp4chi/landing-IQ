@@ -26,7 +26,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </h1>
 
             <p className="text-lg text-gray-300 max-w-2xl font-normal leading-relaxed">
-              Paste your landing page copy or product context. LandingIQ scans your messaging, visual hierarchy, CTAs, SEO, and accessibility in under 10 seconds — powered by Claude 3.5.
+              Paste your landing page copy or product context. LandingIQ scans your messaging, visual hierarchy, CTAs, SEO, and accessibility in under 10 seconds — powered by Multimodal AI.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start space-y-3 sm:space-y-0 sm:space-x-4">
@@ -120,7 +120,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <div className="w-12 h-12 bg-amber text-navy-900 font-display font-bold text-xl rounded-xl flex items-center justify-center mb-6">
               02
             </div>
-            <h3 className="text-xl font-bold text-navy-900 mb-3 font-display">Claude AI Analysis</h3>
+            <h3 className="text-xl font-bold text-navy-900 mb-3 font-display">Multimodal AI Analysis</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
               Our CRO engine evaluates headline psychology, CTA placements, layout hierarchy, SEO tags, and WCAG accessibility.
             </p>

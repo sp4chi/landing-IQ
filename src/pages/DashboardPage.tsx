@@ -95,7 +95,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-navy-800 text-amber text-xs font-semibold uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Claude 3.5 Sonnet + Playwright Vision Engine</span>
+            <span>Multimodal AI + Playwright Vision Engine</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold font-display text-white flex items-center gap-2">
             <span>Analyze Landing Page</span>
@@ -199,7 +199,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
               </div>
               <p className="text-xs text-gray-500 flex items-center gap-1.5">
                 <Camera className="w-3.5 h-3.5 text-amber shrink-0" />
-                <span>Playwright will launch a headless Chromium browser to capture a high-res screenshot and send it to Claude 3.5 Vision.</span>
+                <span>Playwright will launch a headless Chromium browser to capture a high-res screenshot and send it to Multimodal AI Vision.</span>
               </p>
             </div>
           )}
@@ -280,7 +280,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
                     {loadingStage === 'screenshot'
                       ? 'Capturing Playwright Screenshot...'
                       : loadingStage === 'vision'
-                      ? 'Analyzing Vision AI & Copy with Claude 3.5...'
+                      ? 'Analyzing Vision AI & Copy metrics...'
                       : 'Finalizing CRO Audit Report...'}
                   </span>
                 </>
@@ -306,7 +306,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
               <p className="text-sm font-bold text-navy-900">
                 {loadingStage === 'screenshot'
                   ? 'Headless Playwright Chromium browser capturing page screenshot...'
-                  : 'Claude 3.5 Sonnet processing visual layout & text CRO metrics...'}
+                  : 'Multimodal AI processing visual layout & text CRO metrics...'}
               </p>
               <p className="text-xs text-gray-500">Evaluating contrast, above-the-fold clarity, typography, and CTA visual hierarchy</p>
             </div>

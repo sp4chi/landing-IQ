@@ -151,7 +151,7 @@ export function App() {
             <span className="font-bold text-white font-display">LandingIQ</span>
             <span>— AI Landing Page Conversion Auditor</span>
           </div>
-          <p>© {new Date().getFullYear()} LandingIQ. Built with React, Express, Drizzle ORM & Claude 3.5.</p>
+          <p>© {new Date().getFullYear()} LandingIQ. Built with React, Express, Drizzle ORM & Multi-Model Generative AI.</p>
         </div>
       </footer>
     </div>

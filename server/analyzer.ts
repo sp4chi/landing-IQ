@@ -138,7 +138,7 @@ function generateFallbackAudit(content: string, screenshotData?: ScreenshotResul
     ],
     seo: {
       meta_title: 'LandingIQ — High-Converting AI Landing Page Optimizer & CRO Audits',
-      meta_description: 'Analyze landing page copy, Headlines, CTAs, SEO, and layout performance in seconds with Claude AI recommendations.',
+      meta_description: 'Analyze landing page copy, Headlines, CTAs, SEO, and layout performance in seconds with Multimodal AI recommendations.',
       target_keywords: ['landing page audit', 'conversion rate optimization', 'AI marketing tool', 'headline generator'],
       heading_issues: [
         'H1 is missing primary target keywords ("landing page optimizer")',
