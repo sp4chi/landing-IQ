@@ -40,7 +40,7 @@ export async function fetchWebpageText(cleanUrl: string): Promise<string> {
     const res = await fetch(cleanUrl, {
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
       signal: AbortSignal.timeout(8000),
     });
@@ -59,26 +59,24 @@ export async function fetchWebpageText(cleanUrl: string): Promise<string> {
 }
 
 /**
- * Fallback cloud screenshot fetcher using public Microlink, Pagepeeker, Thum.io & WordPress Mshots APIs
+ * Fallback cloud screenshot fetcher using public Microlink & WordPress Mshots APIs
  */
 async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult | null> {
   console.log(`[Vision API Fallback] Fetching live web screenshot via Cloud Screenshot Service for: ${cleanUrl}...`);
   const pageText = await fetchWebpageText(cleanUrl);
 
-  // 1. Try Microlink Public Screenshot API (returns JSON payload with live screenshot CDN URL)
   try {
-    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false`, {
-      signal: AbortSignal.timeout(12000),
-    });
+    // 1. Try Microlink Public Screenshot API
+    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false`);
     if (microLinkRes.ok) {
       const json = await microLinkRes.json();
       const screenshotUrl = json.data?.screenshot?.url;
       if (screenshotUrl) {
-        const imgRes = await fetch(screenshotUrl, { signal: AbortSignal.timeout(10000) });
+        const imgRes = await fetch(screenshotUrl);
         if (imgRes.ok) {
           const arrayBuffer = await imgRes.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
-          if (arrayBuffer.byteLength > 20000) {
+          if (base64.length > 5000) {
             console.log(`[Vision API Fallback] Successfully captured real live screenshot via Microlink API (${Math.round(base64.length / 1024)} KB base64 data)`);
             return {
               base64,
@@ -94,66 +92,14 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
     console.warn(`[Vision API Fallback] Microlink screenshot attempt failed: ${err?.message || err}`);
   }
 
-  // 2. Try Thum.io Instant Direct Screenshot API
   try {
-    const thumUrl = `https://image.thum.io/get/width/1280/crop/800/${cleanUrl}`;
-    const thumRes = await fetch(thumUrl, { signal: AbortSignal.timeout(12000) });
-    if (thumRes.ok) {
-      const arrayBuffer = await thumRes.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      if (arrayBuffer.byteLength > 20000) {
-        console.log(`[Vision API Fallback] Successfully captured real live screenshot via Thum.io (${Math.round(base64.length / 1024)} KB base64 data)`);
-        return {
-          base64,
-          mimeType: 'image/png',
-          url: cleanUrl,
-          extractedText: pageText,
-        };
-      }
-    }
-  } catch (err: any) {
-    console.warn(`[Vision API Fallback] Thum.io screenshot attempt failed: ${err?.message || err}`);
-  }
-
-  // 3. Try Pagepeeker High-Quality Screenshot API
-  try {
-    const pagepeekerUrl = `https://api.pagepeeker.com/v2/thumbs.php?size=l&url=${encodeURIComponent(cleanUrl)}`;
-    const pagepeekerRes = await fetch(pagepeekerUrl, { signal: AbortSignal.timeout(10000) });
-    if (pagepeekerRes.ok) {
-      const arrayBuffer = await pagepeekerRes.arrayBuffer();
-      if (arrayBuffer.byteLength > 20000) {
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        console.log(`[Vision API Fallback] Successfully captured real live screenshot via Pagepeeker (${Math.round(base64.length / 1024)} KB base64 data)`);
-        return {
-          base64,
-          mimeType: 'image/jpeg',
-          url: cleanUrl,
-          extractedText: pageText,
-        };
-      }
-    }
-  } catch (err: any) {
-    console.warn(`[Vision API Fallback] Pagepeeker screenshot attempt failed: ${err?.message || err}`);
-  }
-
-  // 4. Try WordPress mshots API with strict 65KB placeholder size guard
-  try {
+    // 2. Try WordPress mshots API fallback
     const mshotsUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(cleanUrl)}?w=1280&h=800`;
-    let mshotsRes = await fetch(mshotsUrl, { signal: AbortSignal.timeout(10000) });
+    const mshotsRes = await fetch(mshotsUrl);
     if (mshotsRes.ok) {
-      let arrayBuffer = await mshotsRes.arrayBuffer();
-      // WordPress mshots "Generating Preview..." placeholder image is ~42KB (42,432 bytes)
-      if (arrayBuffer.byteLength < 65000) {
-        console.log(`[Vision API Fallback] WordPress Mshots returned initial placeholder (${arrayBuffer.byteLength} bytes). Retrying in 2.5s for final render...`);
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-        const retryRes = await fetch(mshotsUrl, { signal: AbortSignal.timeout(10000) });
-        if (retryRes.ok) {
-          arrayBuffer = await retryRes.arrayBuffer();
-        }
-      }
-
-      if (arrayBuffer.byteLength >= 65000) {
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const arrayBuffer = await mshotsRes.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      if (base64.length > 5000) {
         console.log(`[Vision API Fallback] Successfully captured real live screenshot via WordPress Mshots (${Math.round(base64.length / 1024)} KB base64 data)`);
         return {
           base64,
@@ -161,8 +107,6 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
           url: cleanUrl,
           extractedText: pageText,
         };
-      } else {
-        console.warn(`[Vision API Fallback] WordPress Mshots image still in pending placeholder state (${arrayBuffer.byteLength} bytes). Bypassing placeholder.`);
       }
     }
   } catch (err: any) {
@@ -174,6 +118,7 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
 
 /**
  * Capture a visual screenshot of a given landing page URL using Playwright Chromium with Cloud Screenshot Fallback.
+ * Also extracts actual inner text of the page body.
  */
 export async function capturePageScreenshot(targetUrl: string): Promise<ScreenshotResult | null> {
   let cleanUrl = targetUrl.trim();
@@ -198,6 +143,7 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
+        '--single-process',
         '--disable-gpu',
       ],
     });
@@ -206,25 +152,19 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
       viewport: { width: 1280, height: 800 },
       deviceScaleFactor: 1,
       userAgent:
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      extraHTTPHeaders: {
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     });
 
     const page = await context.newPage();
     
-    // Navigate with domcontentloaded for fast reliable load
+    // Navigate with a generous timeout and domcontentloaded strategy
     await page.goto(cleanUrl, {
       waitUntil: 'domcontentloaded',
       timeout: 15000,
     });
 
-    // Pause 2 seconds for styles, fonts, and hero assets to render
-    await page.waitForTimeout(2000);
-
-    // Ensure scroll position is at top hero section
-    await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+    // Short pause for CSS/animations to stabilize
+    await page.waitForTimeout(1000);
 
     // Extract actual page text body via Playwright page.innerText('body')
     try {
