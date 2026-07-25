@@ -156,7 +156,7 @@ async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Pr
 }
 
 /**
- * Analyze landing page using Groq Cloud API (Free Tier, Llama 3.2 Vision)
+ * Analyze landing page using Groq Cloud API (Free Tier, Llama 3.2 Vision & Llama 3.3)
  */
 async function analyzeWithGroq(apiKey: string, request: AIAnalysisRequest): Promise<any> {
   console.log('[AI Provider] Executing Landing Page Analysis via Groq Cloud...');
@@ -165,32 +165,32 @@ async function analyzeWithGroq(apiKey: string, request: AIAnalysisRequest): Prom
     baseURL: 'https://api.groq.com/openai/v1',
   });
 
-  const candidateModels = [
-    'llama-3.2-11b-vision-instruct',
-    'llama-3.2-90b-vision-instruct',
-    'llama-3.3-70b-versatile',
-  ];
+  const hasScreenshot = Boolean(request.screenshot && request.screenshot.base64);
+  const candidateModels = hasScreenshot
+    ? ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview', 'llama-3.3-70b-versatile']
+    : ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
 
   let lastError: any = null;
   for (const modelName of candidateModels) {
     try {
-      const userContent: any[] = [];
-      if (request.screenshot && request.screenshot.base64) {
-        userContent.push({
-          type: 'image_url',
-          image_url: {
-            url: `data:${request.screenshot.mimeType || 'image/png'};base64,${request.screenshot.base64}`,
+      const isVisionModel = modelName.includes('vision');
+      let userContent: any;
+
+      if (hasScreenshot && isVisionModel) {
+        userContent = [
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${request.screenshot!.mimeType || 'image/png'};base64,${request.screenshot!.base64}`,
+            },
           },
-        });
-        userContent.push({
-          type: 'text',
-          text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`,
-        });
+          {
+            type: 'text',
+            text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`,
+          },
+        ];
       } else {
-        userContent.push({
-          type: 'text',
-          text: `Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`,
-        });
+        userContent = `Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`;
       }
 
       const response = await groq.chat.completions.create({
@@ -215,7 +215,7 @@ async function analyzeWithGroq(apiKey: string, request: AIAnalysisRequest): Prom
 }
 
 /**
- * Analyze landing page using Hugging Face Serverless Inference API (Qwen 2.5 Vision / Llama 3.2 Vision)
+ * Analyze landing page using Hugging Face Serverless Inference API (Qwen 2.5 / Llama 3.2)
  */
 async function analyzeWithHuggingFace(apiKey: string, request: AIAnalysisRequest): Promise<any> {
   console.log('[AI Provider] Executing Landing Page Analysis via Hugging Face Inference API...');
@@ -225,38 +225,23 @@ async function analyzeWithHuggingFace(apiKey: string, request: AIAnalysisRequest
   });
 
   const candidateModels = [
-    'Qwen/Qwen2.5-VL-72B-Instruct',
-    'meta-llama/Llama-3.2-11B-Vision-Instruct',
+    'Qwen/Qwen2.5-Coder-32B-Instruct',
+    'Qwen/Qwen2.5-72B-Instruct',
+    'meta-llama/Llama-3.2-3B-Instruct',
+    'mistralai/Mistral-7B-Instruct-v0.3',
   ];
 
   let lastError: any = null;
   for (const modelName of candidateModels) {
     try {
-      const userContent: any[] = [];
-      if (request.screenshot && request.screenshot.base64) {
-        userContent.push({
-          type: 'image_url',
-          image_url: {
-            url: `data:${request.screenshot.mimeType || 'image/png'};base64,${request.screenshot.base64}`,
-          },
-        });
-        userContent.push({
-          type: 'text',
-          text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`,
-        });
-      } else {
-        userContent.push({
-          type: 'text',
-          text: `Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`,
-        });
-      }
+      const userText = `Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`;
 
       const response = await hf.chat.completions.create({
         model: modelName,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: request.systemPrompt },
-          { role: 'user', content: userContent },
+          { role: 'user', content: userText },
         ],
       });
 
