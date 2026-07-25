@@ -13,6 +13,7 @@ import { dbService, pgPool } from '../src/db/index.js';
 import { authRouter } from './auth.js';
 import { analyzerRouter } from './analyzer.js';
 import { reportsRouter } from './reports.js';
+import { debugRouter } from './debug.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,6 +79,7 @@ dbService.initDb().catch((err) => {
 app.use('/api/auth', authRouter);
 app.use('/api', analyzerRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api', debugRouter);
 
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
