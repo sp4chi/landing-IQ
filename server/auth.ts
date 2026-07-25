@@ -61,12 +61,19 @@ export const isGoogleOauthConfigured = () => {
 
   if (isConfigured && !isGoogleStrategyRegistered) {
     try {
+      const callbackURL =
+        process.env.GOOGLE_CALLBACK_URL &&
+        !process.env.GOOGLE_CALLBACK_URL.includes('your_') &&
+        process.env.GOOGLE_CALLBACK_URL.trim() !== ''
+          ? process.env.GOOGLE_CALLBACK_URL
+          : '/api/auth/google/callback';
+
       passport.use(
         new GoogleStrategy(
           {
             clientID: id!,
             clientSecret: secret!,
-            callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
+            callbackURL,
           },
           async (_accessToken, _refreshToken, profile, done) => {
             try {
