@@ -1,0 +1,17 @@
+# Caddyfile — automatic HTTPS reverse proxy in front of the LandingIQ container.
+#
+# Replace "landingiq.duckdns.org" with YOUR actual DuckDNS subdomain.
+# When you buy a real domain later, just change this one line and restart Caddy —
+# nothing else in your setup needs to change.
+
+landingiq.duckdns.org {
+    reverse_proxy app:3000
+
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000;"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+    }
+}
