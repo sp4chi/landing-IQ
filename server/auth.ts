@@ -165,7 +165,10 @@ authRouter.post('/signup', authRateLimiter, async (req, res, next) => {
 
     req.login(safeUser, (err) => {
       if (err) return next(err);
-      return res.status(201).json({ user: safeUser, message: 'Account created successfully' });
+      req.session.save((saveErr) => {
+        if (saveErr) console.error('Session save error post signup:', saveErr);
+        return res.status(201).json({ user: safeUser, message: 'Account created successfully' });
+      });
     });
   } catch (err) {
     next(err);
@@ -188,7 +191,10 @@ authRouter.post('/login', authRateLimiter, (req, res, next) => {
     req.login(user, (err) => {
       if (err) return next(err);
       const safeUser = { id: user.id, email: user.email, createdAt: user.createdAt };
-      return res.json({ user: safeUser, message: 'Logged in successfully' });
+      req.session.save((saveErr) => {
+        if (saveErr) console.error('Session save error post login:', saveErr);
+        return res.json({ user: safeUser, message: 'Logged in successfully' });
+      });
     });
   })(req, res, next);
 });
