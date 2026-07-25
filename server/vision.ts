@@ -17,6 +17,9 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
 
   let browser = null;
   try {
+    if (process.env.PLAYWRIGHT_BROWSERS_PATH === undefined) {
+      process.env.PLAYWRIGHT_BROWSERS_PATH = '0';
+    }
     console.log(`[Vision] Launching Playwright to capture screenshot of: ${cleanUrl}`);
     browser = await chromium.launch({
       headless: true,

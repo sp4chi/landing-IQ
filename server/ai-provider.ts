@@ -73,7 +73,13 @@ async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Pr
   console.log('[AI Provider] Executing Landing Page Analysis via Google Gemini...');
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  const candidateModels = ['gemini-1.5-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro-latest'];
+  const candidateModels = [
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-2.0-pro-exp-02-05',
+  ];
   let lastError: any = null;
 
   for (const modelName of candidateModels) {
