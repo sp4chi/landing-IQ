@@ -65,8 +65,29 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
   console.log(`[Vision API Fallback] Fetching live web screenshot via Cloud Screenshot Service for: ${cleanUrl}...`);
   const pageText = await fetchWebpageText(cleanUrl);
 
+  // 1. Try Thum.io Instant Direct Screenshot API
   try {
-    // 1. Try Microlink Public Screenshot API
+    const thumUrl = `https://image.thum.io/get/width/1280/crop/800/${cleanUrl}`;
+    const thumRes = await fetch(thumUrl, { signal: AbortSignal.timeout(12000) });
+    if (thumRes.ok) {
+      const arrayBuffer = await thumRes.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      if (arrayBuffer.byteLength > 15000) {
+        console.log(`[Vision API Fallback] Successfully captured real live screenshot via Thum.io (${Math.round(base64.length / 1024)} KB base64 data)`);
+        return {
+          base64,
+          mimeType: 'image/png',
+          url: cleanUrl,
+          extractedText: pageText,
+        };
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[Vision API Fallback] Thum.io screenshot attempt failed: ${err?.message || err}`);
+  }
+
+  // 2. Try Microlink Public Screenshot API
+  try {
     const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&embed=screenshot.url`);
     if (microLinkRes.ok) {
       const json = await microLinkRes.json();
@@ -76,7 +97,7 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
         if (imgRes.ok) {
           const arrayBuffer = await imgRes.arrayBuffer();
           const base64 = Buffer.from(arrayBuffer).toString('base64');
-          if (base64.length > 5000) {
+          if (arrayBuffer.byteLength > 15000) {
             console.log(`[Vision API Fallback] Successfully captured real live screenshot via Microlink API (${Math.round(base64.length / 1024)} KB base64 data)`);
             return {
               base64,
@@ -92,14 +113,24 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
     console.warn(`[Vision API Fallback] Microlink screenshot attempt failed: ${err?.message || err}`);
   }
 
+  // 3. Try WordPress mshots API with retry guard (to skip "Generating Preview..." placeholder)
   try {
-    // 2. Try WordPress mshots API fallback
     const mshotsUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(cleanUrl)}?w=1280&h=800`;
-    const mshotsRes = await fetch(mshotsUrl);
+    let mshotsRes = await fetch(mshotsUrl);
     if (mshotsRes.ok) {
-      const arrayBuffer = await mshotsRes.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      if (base64.length > 5000) {
+      let arrayBuffer = await mshotsRes.arrayBuffer();
+      // WordPress mshots initial placeholder image is typically ~12KB containing "Generating Preview" text
+      if (arrayBuffer.byteLength < 35000) {
+        console.log(`[Vision API Fallback] WordPress Mshots returned initial placeholder (${arrayBuffer.byteLength} bytes). Retrying in 3s for final render...`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const retryRes = await fetch(mshotsUrl);
+        if (retryRes.ok) {
+          arrayBuffer = await retryRes.arrayBuffer();
+        }
+      }
+
+      if (arrayBuffer.byteLength > 35000) {
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
         console.log(`[Vision API Fallback] Successfully captured real live screenshot via WordPress Mshots (${Math.round(base64.length / 1024)} KB base64 data)`);
         return {
           base64,
