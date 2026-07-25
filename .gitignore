@@ -40,3 +40,4 @@ vite.config.ts.timestamp-*
 # Local scratch / system directories
 scratch
 .gemini
+*.txt
