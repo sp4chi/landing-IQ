@@ -22,7 +22,9 @@ export function App() {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          setActiveTab('dashboard');
+          if (data.user) {
+            setActiveTab('dashboard');
+          }
         } else {
           setUser(null);
         }

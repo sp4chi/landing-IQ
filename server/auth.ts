@@ -199,7 +199,7 @@ authRouter.post('/logout', (req, res, next) => {
 // GET /api/auth/me
 authRouter.get('/me', (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: 'Unauthenticated' });
+    return res.status(200).json({ user: null });
   }
   const user: any = req.user;
   return res.json({ user: { id: user.id, email: user.email, createdAt: user.createdAt } });
