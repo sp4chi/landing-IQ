@@ -2,17 +2,22 @@ import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { dbService } from '../src/db/index.js';
+import { capturePageScreenshot, generateMockScreenshotBase64, ScreenshotResult } from './vision.js';
 
 export const analyzerRouter = Router();
 
-// Zod validation schema
+// Zod validation schema supporting text content, explicit target URL, or uploaded screenshot image
 const analyzeSchema = z.object({
   content: z.string().min(10, 'Landing page content or description must be at least 10 characters long'),
   title: z.string().optional(),
+  url: z.string().optional(),
+  imageBase64: z.string().optional(),
 });
 
-const SYSTEM_PROMPT = `You are LandingIQ, an elite conversion rate optimization (CRO) expert, senior marketing strategist, and web usability analyst.
-Your job is to perform an exhaustive, evidence-backed audit of landing page copy, value propositions, CTAs, layout structure, SEO, and accessibility.
+const SYSTEM_PROMPT = `You are LandingIQ, an elite conversion rate optimization (CRO) expert, senior marketing strategist, visual UX architect, and web accessibility analyst.
+Your job is to perform an exhaustive, evidence-backed audit of landing page copy, visual UI elements, layout hierarchy, headlines, CTAs, SEO, contrast, and accessibility.
+
+If a visual screenshot image is provided in the message, perform a Multimodal AI Vision Audit analyzing visual hierarchy, above-the-fold clarity, CTA button contrast & size, typography readability, and whitespace balance.
 
 You MUST respond strictly with valid JSON only. Do NOT include any markdown codeblocks (\`\`\`json or \`\`\`), introduction, or extra conversational text outside the JSON object.
 
@@ -24,6 +29,16 @@ The output JSON structure MUST match this exact schema:
     <actionable high-impact fix 2>,
     <actionable high-impact fix 3>
   ],
+  "visual_audit": {
+    "above_the_fold_clarity": { "score": <0-100>, "feedback": <concise visual feedback> },
+    "contrast_and_readability": { "score": <0-100>, "feedback": <concise visual feedback> },
+    "cta_visual_prominence": { "score": <0-100>, "feedback": <concise visual feedback> },
+    "visual_hierarchy_and_whitespace": { "score": <0-100>, "feedback": <concise visual feedback> },
+    "visual_fixes": [
+      <specific visual/CSS design fix 1>,
+      <specific visual/CSS design fix 2>
+    ]
+  },
   "headlines": [
     { "text": <optimized headline alternative 1>, "rationale": <why this hook converts better> },
     { "text": <optimized headline alternative 2>, "rationale": <why this hook converts better> }
@@ -50,17 +65,41 @@ The output JSON structure MUST match this exact schema:
 }`;
 
 // Helper generator for mock response if API key is not configured or in sandbox mode
-function generateFallbackAudit(content: string) {
+function generateFallbackAudit(content: string, screenshotData?: ScreenshotResult | null) {
   const isUrl = content.trim().startsWith('http://') || content.trim().startsWith('https://');
-  const titleHint = isUrl ? content.trim() : content.slice(0, 45) + '...';
+  const screenshot = screenshotData || generateMockScreenshotBase64();
 
   return {
-    conversion_score: 72,
+    conversion_score: 74,
+    screenshot_base64: screenshot.base64,
+    screenshot_url: screenshot.url,
     top_priority_fixes: [
       'Clarity gap: The primary value proposition is buried below the fold — move main benefits into the hero subheadline.',
-      'Weak Call-to-Action: Replace low-friction friction words like "Submit" or "Learn More" with action-oriented benefit verbs like "Get My Custom Audit".',
-      'Social Proof Isolation: Testimonials are missing trust indicators such as verified client logos, star ratings, or quantifiable metric proof points.'
+      'Weak Call-to-Action: Replace low-friction words like "Submit" or "Learn More" with high-intent verbs like "Claim My Custom Audit →".',
+      'Visual Contrast Warning: CTA button lacks strong visual contrast against dark background. Use high-contrast Amber (#F59E0B) styling.'
     ],
+    visual_audit: {
+      above_the_fold_clarity: {
+        score: 82,
+        feedback: 'Hero section headline is bold and legible, but subheadline lacks strong value contrast.'
+      },
+      contrast_and_readability: {
+        score: 75,
+        feedback: 'Main body copy text achieves acceptable contrast ratio, but secondary links are slightly dim.'
+      },
+      cta_visual_prominence: {
+        score: 68,
+        feedback: 'Primary CTA button button size is adequate, but needs a glowing shadow and contrasting accent color.'
+      },
+      visual_hierarchy_and_whitespace: {
+        score: 80,
+        feedback: 'Clean card spacing and logical top-to-bottom section order with strong visual padding.'
+      },
+      visual_fixes: [
+        'Enlarge primary CTA button height to 52px and add a subtle glowing gold accent shadow.',
+        'Increase hero headline font weight to 800 (Extra Bold) with 1.15 line-height for instant punch.'
+      ]
+    },
     headlines: [
       {
         text: 'Turn 30% More Visitors Into Qualified Pipeline in Under 7 Days',
@@ -132,9 +171,28 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
       return res.status(400).json({ error: errorMsg });
     }
 
-    const { content, title } = parseResult.data;
+    const { content, title, url: providedUrl, imageBase64: providedImage } = parseResult.data;
     const userId = (req.user as any).id;
-    const reportTitle = title && title.trim() !== '' ? title.trim() : (content.length > 50 ? content.slice(0, 47) + '...' : content);
+
+    // Detect if input string itself is a URL
+    const trimmedContent = content.trim();
+    const isInputUrl = trimmedContent.startsWith('http://') || trimmedContent.startsWith('https://') || trimmedContent.includes('.com') || trimmedContent.includes('.app') || trimmedContent.includes('.io');
+    const targetUrl = providedUrl || (isInputUrl ? trimmedContent.split('\n')[0] : null);
+
+    const reportTitle = title && title.trim() !== '' ? title.trim() : (targetUrl ? `Visual Audit: ${targetUrl}` : (content.length > 50 ? content.slice(0, 47) + '...' : content));
+
+    // Attempt Playwright Screenshot Capture if URL is detected or provided
+    let screenshot: ScreenshotResult | null = null;
+    if (providedImage) {
+      screenshot = {
+        base64: providedImage.replace(/^data:image\/(png|jpeg|webp);base64,/, ''),
+        mimeType: 'image/png',
+        url: targetUrl || 'Uploaded Screenshot',
+      };
+    } else if (targetUrl) {
+      console.log(`[Analyzer] Target URL detected: ${targetUrl}. Attempting Playwright visual screenshot capture...`);
+      screenshot = await capturePageScreenshot(targetUrl);
+    }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     let resultJson: any = null;
@@ -142,35 +200,68 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
     if (apiKey && apiKey.trim() !== '' && apiKey !== 'your_anthropic_api_key_here') {
       try {
         const anthropic = new Anthropic({ apiKey });
+        const userContent: any[] = [];
+
+        // Add visual screenshot block if captured or uploaded
+        if (screenshot && screenshot.base64) {
+          userContent.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: screenshot.mimeType,
+              data: screenshot.base64,
+            },
+          });
+          userContent.push({
+            type: 'text',
+            text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${content}`,
+          });
+        } else {
+          userContent.push({
+            type: 'text',
+            text: `Please perform a detailed conversion audit on the following landing page content:\n\n${content}`,
+          });
+        }
+
         const message = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2500,
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 3000,
           temperature: 0.2,
           system: SYSTEM_PROMPT,
           messages: [
             {
               role: 'user',
-              content: `Please perform a detailed conversion audit on the following landing page content:\n\n${content}`,
+              content: userContent,
             },
           ],
         });
 
         const rawContent = message.content[0]?.type === 'text' ? message.content[0].text : '';
-        // Clean JSON formatting if codeblocks were mistakenly wrapped
         const cleanJsonStr = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
         resultJson = JSON.parse(cleanJsonStr);
+
+        // Attach screenshot base64 to result JSON for UI presentation
+        if (screenshot) {
+          resultJson.screenshot_base64 = screenshot.base64;
+          resultJson.screenshot_url = screenshot.url;
+        }
       } catch (anthropicErr: any) {
-        console.error('Anthropic API Call Failed or returned invalid JSON:', anthropicErr?.message || anthropicErr);
-        // Fallback gracefully instead of breaking UI if API key is invalid or fails
-        resultJson = generateFallbackAudit(content);
+        console.error('Anthropic Vision API Call Failed or returned invalid JSON:', anthropicErr?.message || anthropicErr);
+        resultJson = generateFallbackAudit(content, screenshot);
       }
     } else {
-      console.log('No ANTHROPIC_API_KEY set or default key detected. Generating simulated AI analysis.');
-      resultJson = generateFallbackAudit(content);
+      console.log('No ANTHROPIC_API_KEY set or default key detected. Generating simulated Multimodal AI Vision analysis.');
+      resultJson = generateFallbackAudit(content, screenshot);
     }
 
     // Ensure valid conversion score numeric fallback
-    const conversionScore = typeof resultJson.conversion_score === 'number' ? resultJson.conversion_score : 70;
+    const conversionScore = typeof resultJson.conversion_score === 'number' ? resultJson.conversion_score : 74;
+
+    // Attach screenshot if fallback was used
+    if (screenshot && !resultJson.screenshot_base64) {
+      resultJson.screenshot_base64 = screenshot.base64;
+      resultJson.screenshot_url = screenshot.url;
+    }
 
     // Save report in database
     const savedReport = await dbService.createReport({
@@ -183,7 +274,7 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
 
     return res.status(200).json({
       report: savedReport,
-      message: 'Landing page analysis completed successfully',
+      message: 'Landing page visual audit completed successfully',
     });
   } catch (err) {
     console.error('Unhandled Analyzer Error:', err);

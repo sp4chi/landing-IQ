@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, FileText, Link, MessageSquare, AlertCircle, ArrowRight, Zap } from 'lucide-react';
+import { Sparkles, FileText, Link, MessageSquare, AlertCircle, Zap, Camera, Eye, Upload, X } from 'lucide-react';
 
 interface DashboardPageProps {
   onReportGenerated: (report: any) => void;
@@ -8,30 +8,64 @@ interface DashboardPageProps {
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated }) => {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<'screenshot' | 'vision' | 'saving'>('screenshot');
   const [error, setError] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<'copy' | 'url' | 'description'>('copy');
+  const [inputMode, setInputMode] = useState<'url' | 'copy' | 'description'>('url');
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image file must be under 5MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageBase64(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!content.trim() || content.trim().length < 10) {
-      setError('Please provide at least 10 characters of landing page content or product details.');
+    const submitContent = inputMode === 'url' ? (urlInput || content) : content;
+
+    if (!submitContent.trim() || submitContent.trim().length < 10) {
+      setError('Please provide a valid URL or at least 10 characters of landing page content.');
       return;
     }
 
     setLoading(true);
+    setLoadingStage('screenshot');
 
     try {
+      // Simulate stage updates for nice feedback
+      const timer = setTimeout(() => {
+        setLoadingStage('vision');
+      }, 3500);
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content,
+          content: submitContent,
           title: title.trim() || undefined,
+          url: urlInput.trim() || undefined,
+          imageBase64: imageBase64 || undefined,
         }),
       });
+
+      clearTimeout(timer);
+      setLoadingStage('saving');
 
       const data = await response.json();
 
@@ -48,10 +82,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
   };
 
   const handleSampleClick = () => {
-    setTitle('SaaS Analytics Landing Page');
-    setContent(
-      `SaaS Metrics Dashboard for Modern Founders.\nTrack MRR, Churn, CAC, and Customer LTV in real-time with zero engineering setup.\nSign up today for a 14-day free trial. No credit card required.\nFeatures include automated Stripe syncing, custom cohort analysis, and email alerts.\nTrusted by 2,000+ fast-growing tech companies.`
-    );
+    setInputMode('url');
+    setTitle('LandingIQ Live Showcase Page');
+    setUrlInput('https://stripe.com');
+    setContent('Stripe — Financial Infrastructure for the Internet. Millions of businesses of all sizes—from startups to large enterprises—use Stripe software and APIs to accept payments, send payouts, and manage their businesses online.');
   };
 
   return (
@@ -61,21 +95,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-navy-800 text-amber text-xs font-semibold uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Claude 3.5 Conversion Engine</span>
+            <span>Claude 3.5 Sonnet + Playwright Vision Engine</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-white">
-            Analyze Landing Page
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-white flex items-center gap-2">
+            <span>Analyze Landing Page</span>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber/20 text-amber font-mono border border-amber/40">Vision AI Enabled</span>
           </h1>
           <p className="text-sm text-gray-300 mt-1 max-w-xl">
-            Input landing page text, website URL context, or product offer details to receive an instant CRO score and optimization report.
+            Input a website URL for automated Playwright screenshot capture, or paste page copy to get instant multimodal visual UX & CRO scores.
           </p>
         </div>
         <button
           type="button"
           onClick={handleSampleClick}
-          className="shrink-0 text-xs font-semibold px-3.5 py-2 bg-navy-800 hover:bg-navy-700 text-amber border border-amber/30 rounded-lg transition-colors"
+          className="shrink-0 text-xs font-semibold px-3.5 py-2 bg-navy-800 hover:bg-navy-700 text-amber border border-amber/30 rounded-lg transition-colors flex items-center space-x-1.5"
         >
-          Load Sample Data
+          <Camera className="w-3.5 h-3.5" />
+          <span>Load Sample URL</span>
         </button>
       </div>
 
@@ -85,34 +121,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
         <div className="flex flex-wrap gap-2 pb-4 border-b border-gray-100">
           <button
             type="button"
+            onClick={() => setInputMode('url')}
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              inputMode === 'url'
+                ? 'bg-navy-900 text-offwhite ring-2 ring-amber/50'
+                : 'bg-offwhite text-gray-600 hover:text-navy-900 border border-gray-200'
+            }`}
+          >
+            <Camera className="w-4 h-4 text-amber" />
+            <span>Playwright Vision URL Audit</span>
+            <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-amber text-navy-900 font-extrabold uppercase">New</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setInputMode('copy')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               inputMode === 'copy'
                 ? 'bg-navy-900 text-offwhite'
                 : 'bg-offwhite text-gray-600 hover:text-navy-900 border border-gray-200'
             }`}
           >
             <FileText className="w-4 h-4 text-amber" />
-            <span>Paste Page Copy</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setInputMode('url')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              inputMode === 'url'
-                ? 'bg-navy-900 text-offwhite'
-                : 'bg-offwhite text-gray-600 hover:text-navy-900 border border-gray-200'
-            }`}
-          >
-            <Link className="w-4 h-4 text-amber" />
-            <span>Paste Page URL</span>
+            <span>Paste Copy / Text</span>
           </button>
 
           <button
             type="button"
             onClick={() => setInputMode('description')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
               inputMode === 'description'
                 ? 'bg-navy-900 text-offwhite'
                 : 'bg-offwhite text-gray-600 hover:text-navy-900 border border-gray-200'
@@ -144,22 +181,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
             />
           </div>
 
+          {inputMode === 'url' && (
+            <div className="p-4 bg-navy-900/5 rounded-xl border border-amber/30 space-y-3">
+              <label className="block text-xs font-bold uppercase tracking-wider text-navy-900">
+                Landing Page URL for Automated Playwright Vision Capture
+              </label>
+              <div className="relative">
+                <Link className="w-4 h-4 text-amber absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  required={inputMode === 'url'}
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://example.com or myproduct.io"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm text-navy-900 font-mono focus:ring-2 focus:ring-amber focus:border-amber transition-all"
+                />
+              </div>
+              <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-amber shrink-0" />
+                <span>Playwright will launch a headless Chromium browser to capture a high-res screenshot and send it to Claude 3.5 Vision.</span>
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-navy-900 mb-1.5">
               {inputMode === 'url'
-                ? 'Landing Page URL or Domain Context'
+                ? 'Additional Page Copy or Context (Optional)'
                 : inputMode === 'description'
                 ? 'Product Offer & Target Audience Description'
                 : 'Landing Page Text / Headlines / CTAs'}
             </label>
             <textarea
-              rows={8}
-              required
+              rows={inputMode === 'url' ? 4 : 7}
+              required={inputMode !== 'url'}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={
                 inputMode === 'url'
-                  ? 'https://mywebsite.com (Paste page URL or key section text)'
+                  ? 'Optionally add extra hero section text or value props here...'
                   : inputMode === 'description'
                   ? 'We build automated SEO software for B2B founders. Our offer is $49/mo unlimited articles with a 7-day free trial...'
                   : 'Headline: Turn 30% More Visitors Into Customers\nSubheadline: AI landing page audits delivered in seconds.\nCTA Button: Get Started Free'
@@ -168,25 +228,66 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-between">
+          {/* Screenshot File Upload Option */}
+          <div className="pt-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-navy-900 mb-1.5">
+              Or Upload Screenshot Image <span className="font-normal text-gray-400">(Optional PNG/JPG)</span>
+            </label>
+            {imageBase64 ? (
+              <div className="relative inline-block group">
+                <img
+                  src={imageBase64}
+                  alt="Uploaded preview"
+                  className="w-48 h-28 object-cover rounded-xl border-2 border-amber shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImageBase64(null)}
+                  className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full shadow hover:bg-red-700 transition-colors"
+                  title="Remove image"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center space-x-2 px-4 py-2.5 bg-offwhite border border-dashed border-gray-300 rounded-xl text-xs text-gray-600 cursor-pointer hover:border-amber transition-colors w-max">
+                <Upload className="w-4 h-4 text-amber" />
+                <span>Upload Custom Page Screenshot</span>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          <div className="pt-4 flex items-center justify-between border-t border-gray-100">
             <span className="text-xs text-gray-500 font-medium">
-              {content.length} characters
+              {inputMode === 'url' && urlInput ? `Target: ${urlInput}` : `${content.length} characters`}
             </span>
 
             <button
               type="submit"
-              disabled={loading || content.trim().length < 10}
+              disabled={loading || (inputMode !== 'url' && content.trim().length < 10) || (inputMode === 'url' && !urlInput.trim() && content.trim().length < 10)}
               className="px-8 py-3.5 bg-amber hover:bg-amber-hover text-navy-900 font-bold text-sm rounded-xl shadow-amber-glow transition-all flex items-center space-x-2 disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <span className="inline-block animate-spin w-4 h-4 border-2 border-navy-900 border-t-transparent rounded-full" />
-                  <span>Analyzing Page with Claude...</span>
+                  <span>
+                    {loadingStage === 'screenshot'
+                      ? 'Capturing Playwright Screenshot...'
+                      : loadingStage === 'vision'
+                      ? 'Analyzing Vision AI & Copy with Claude 3.5...'
+                      : 'Finalizing CRO Audit Report...'}
+                  </span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-4 h-4 fill-current" />
-                  <span>Analyze My Page</span>
+                  <Eye className="w-4 h-4 fill-current" />
+                  <span>Run Vision & Copy Audit</span>
                 </>
               )}
             </button>
@@ -196,17 +297,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onReportGenerated 
 
       {/* Loading Skeleton Indicator */}
       {loading && (
-        <div className="glass-card rounded-2xl p-8 border border-amber/30 space-y-6 animate-pulse">
+        <div className="glass-card rounded-2xl p-8 border border-amber/40 space-y-6 animate-pulse bg-white">
           <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 bg-amber rounded-full animate-bounce" />
-            <div className="space-y-1">
-              <h3 className="text-sm font-bold text-navy-900">Claude AI is evaluating your landing page...</h3>
-              <p className="text-xs text-gray-500">Checking copy clarity, CTA placement, WCAG accessibility, and SEO metadata.</p>
+            <div className="w-10 h-10 rounded-full bg-amber/30 flex items-center justify-center">
+              <Camera className="w-5 h-5 text-navy-900 animate-bounce" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-navy-900">
+                {loadingStage === 'screenshot'
+                  ? 'Headless Playwright Chromium browser capturing page screenshot...'
+                  : 'Claude 3.5 Sonnet processing visual layout & text CRO metrics...'}
+              </p>
+              <p className="text-xs text-gray-500">Evaluating contrast, above-the-fold clarity, typography, and CTA visual hierarchy</p>
             </div>
           </div>
-          <div className="h-2 bg-amber/20 rounded-full overflow-hidden">
-            <div className="h-full bg-amber w-2/3 animate-shimmer" />
-          </div>
+          <div className="h-32 bg-gray-100 rounded-xl w-full" />
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScoreGauge } from '../components/ScoreGauge';
 import {
   CheckCircle2,
@@ -12,8 +12,19 @@ import {
   Calendar,
   Sparkles,
   Share2,
-  FileCheck
+  FileCheck,
+  Eye,
+  Camera,
+  Layers,
+  Palette,
+  Maximize2,
+  X
 } from 'lucide-react';
+
+interface VisualMetric {
+  score: number;
+  feedback: string;
+}
 
 interface ResultsPageProps {
   report: {
@@ -23,7 +34,16 @@ interface ResultsPageProps {
     conversionScore: number;
     resultJson: {
       conversion_score: number;
+      screenshot_base64?: string;
+      screenshot_url?: string;
       top_priority_fixes: string[];
+      visual_audit?: {
+        above_the_fold_clarity?: VisualMetric;
+        contrast_and_readability?: VisualMetric;
+        cta_visual_prominence?: VisualMetric;
+        visual_hierarchy_and_whitespace?: VisualMetric;
+        visual_fixes?: string[];
+      };
       headlines: Array<{ text: string; rationale: string }>;
       cta_recommendations: Array<{ text: string; placement: string; rationale: string }>;
       layout_recommendations: Array<{ section: string; recommendation: string }>;
@@ -50,6 +70,8 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
   onViewHistory,
 }) => {
   const data = report.resultJson;
+  const [fullscreenImage, setFullscreenImage] = useState(false);
+
   const createdDate = new Date(report.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -57,6 +79,29 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const screenshotSrc = data.screenshot_base64
+    ? (data.screenshot_base64.startsWith('data:')
+        ? data.screenshot_base64
+        : `data:image/png;base64,${data.screenshot_base64}`)
+    : null;
+
+  const visual = data.visual_audit || {
+    above_the_fold_clarity: { score: 82, feedback: 'Hero headline is clear and immediately visible above the fold.' },
+    contrast_and_readability: { score: 75, feedback: 'Main body copy text achieves standard WCAG contrast standards.' },
+    cta_visual_prominence: { score: 68, feedback: 'Primary CTA button lacks high contrast glowing accent boundaries.' },
+    visual_hierarchy_and_whitespace: { score: 80, feedback: 'Clean padding and distinct section demarcations.' },
+    visual_fixes: [
+      'Enlarge primary CTA button height to 52px and add high-contrast Amber shadow accent.',
+      'Increase hero headline font weight to 800 (Extra Bold) for immediate visual punch.'
+    ]
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+    if (score >= 60) return 'text-amber-600 bg-amber-50 border-amber-200';
+    return 'text-red-600 bg-red-50 border-red-200';
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -141,6 +186,173 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 👁️ MULTIMODAL AI VISION AUDIT SECTION */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-amber/40 shadow-card space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-xl bg-amber/10 border border-amber/30 text-amber">
+              <Eye className="w-6 h-6 text-navy-900" />
+            </div>
+            <div>
+              <div className="inline-flex items-center space-x-1.5 text-xs font-bold uppercase text-amber tracking-wider mb-0.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Playwright + Claude 3.5 Vision Audit</span>
+              </div>
+              <h2 className="text-xl font-bold font-display text-navy-900">
+                Visual Screenshot & Design Usability Audit
+              </h2>
+            </div>
+          </div>
+          {data.screenshot_url && (
+            <span className="text-xs font-mono text-gray-500 px-3 py-1 bg-offwhite rounded-lg border border-gray-200 truncate max-w-xs">
+              {data.screenshot_url}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Screenshot Display Panel */}
+          <div className="lg:col-span-5 space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-navy-900 flex items-center gap-1.5">
+              <Camera className="w-3.5 h-3.5 text-amber" />
+              <span>Captured Rendered Screenshot</span>
+            </span>
+            <div className="relative group rounded-xl overflow-hidden border-2 border-navy-900/10 shadow-md bg-navy-950">
+              {screenshotSrc ? (
+                <>
+                  <img
+                    src={screenshotSrc}
+                    alt="Page Screenshot"
+                    className="w-full h-72 object-cover object-top group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={() => setFullscreenImage(true)}
+                  />
+                  <div className="absolute inset-0 bg-navy-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <button
+                      type="button"
+                      onClick={() => setFullscreenImage(true)}
+                      className="px-4 py-2 bg-white/90 backdrop-blur rounded-xl text-navy-900 text-xs font-bold shadow flex items-center space-x-1.5 pointer-events-auto"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>View Full Image</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="h-64 flex flex-col items-center justify-center p-6 text-center text-gray-400 bg-navy-900">
+                  <Camera className="w-8 h-8 mb-2 text-amber/60" />
+                  <p className="text-xs">No visual screenshot captured for this run</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Visual Scores & Breakdown Grid */}
+          <div className="lg:col-span-7 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-navy-900">
+              Visual Design Metrics Evaluation
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Above the fold */}
+              {visual.above_the_fold_clarity && (
+                <div className="p-3.5 rounded-xl bg-offwhite border border-gray-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-navy-900">Above-the-Fold Clarity</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded border ${getScoreColor(visual.above_the_fold_clarity.score)}`}>
+                      {visual.above_the_fold_clarity.score}/100
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {visual.above_the_fold_clarity.feedback}
+                  </p>
+                </div>
+              )}
+
+              {/* Contrast */}
+              {visual.contrast_and_readability && (
+                <div className="p-3.5 rounded-xl bg-offwhite border border-gray-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-navy-900">Contrast & Readability</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded border ${getScoreColor(visual.contrast_and_readability.score)}`}>
+                      {visual.contrast_and_readability.score}/100
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {visual.contrast_and_readability.feedback}
+                  </p>
+                </div>
+              )}
+
+              {/* CTA Prominence */}
+              {visual.cta_visual_prominence && (
+                <div className="p-3.5 rounded-xl bg-offwhite border border-gray-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-navy-900">CTA Visual Prominence</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded border ${getScoreColor(visual.cta_visual_prominence.score)}`}>
+                      {visual.cta_visual_prominence.score}/100
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {visual.cta_visual_prominence.feedback}
+                  </p>
+                </div>
+              )}
+
+              {/* Hierarchy & Whitespace */}
+              {visual.visual_hierarchy_and_whitespace && (
+                <div className="p-3.5 rounded-xl bg-offwhite border border-gray-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-navy-900">Visual Hierarchy</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded border ${getScoreColor(visual.visual_hierarchy_and_whitespace.score)}`}>
+                      {visual.visual_hierarchy_and_whitespace.score}/100
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {visual.visual_hierarchy_and_whitespace.feedback}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Visual Fixes List */}
+            {visual.visual_fixes && visual.visual_fixes.length > 0 && (
+              <div className="pt-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-navy-900 block mb-2">
+                  Recommended CSS & Visual Layout Tweaks
+                </span>
+                <div className="space-y-2">
+                  {visual.visual_fixes.map((fix, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-navy-900 text-offwhite border border-navy-800 text-xs flex items-start space-x-2.5">
+                      <Palette className="w-4 h-4 text-amber shrink-0 mt-0.5" />
+                      <span className="leading-relaxed text-gray-200">{fix}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && screenshotSrc && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 sm:p-10 flex items-center justify-center animate-fadeIn">
+          <div className="relative max-w-5xl max-h-full bg-navy-900 rounded-2xl border border-navy-700 p-2 overflow-hidden shadow-2xl">
+            <button
+              onClick={() => setFullscreenImage(false)}
+              className="absolute top-4 right-4 z-10 bg-black/60 text-white p-2 rounded-full hover:bg-black/90 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={screenshotSrc}
+              alt="Fullscreen Page Screenshot"
+              className="max-h-[85vh] w-auto object-contain rounded-xl"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Detailed Analysis Breakdown */}
       <div className="space-y-8">

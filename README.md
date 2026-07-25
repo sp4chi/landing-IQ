@@ -4,6 +4,13 @@
 
 ---
 
+## Live Demo
+
+https://landing-iq.onrender.com/
+
+
+---
+
 ## 🚀 Tech Stack
 
 - **Frontend**: React (Vite) + TypeScript + Tailwind CSS + Lucide Icons
