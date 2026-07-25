@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { dbService } from '../src/db/index.js';
 import { capturePageScreenshot, generateMockScreenshotBase64, ScreenshotResult } from './vision.js';
+import { executeAIAnalysis } from './ai-provider.js';
 
 export const analyzerRouter = Router();
 
@@ -194,63 +194,26 @@ analyzerRouter.post('/analyze', async (req, res, next) => {
       screenshot = await capturePageScreenshot(targetUrl);
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
     let resultJson: any = null;
 
-    if (apiKey && apiKey.trim() !== '' && apiKey !== 'your_anthropic_api_key_here') {
-      try {
-        const anthropic = new Anthropic({ apiKey });
-        const userContent: any[] = [];
+    try {
+      const aiResult = await executeAIAnalysis({
+        content,
+        systemPrompt: SYSTEM_PROMPT,
+        screenshot: screenshot ? { base64: screenshot.base64, mimeType: screenshot.mimeType } : null,
+      });
 
-        // Add visual screenshot block if captured or uploaded
-        if (screenshot && screenshot.base64) {
-          userContent.push({
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: screenshot.mimeType,
-              data: screenshot.base64,
-            },
-          });
-          userContent.push({
-            type: 'text',
-            text: `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${content}`,
-          });
-        } else {
-          userContent.push({
-            type: 'text',
-            text: `Please perform a detailed conversion audit on the following landing page content:\n\n${content}`,
-          });
-        }
-
-        const message = await anthropic.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 3000,
-          temperature: 0.2,
-          system: SYSTEM_PROMPT,
-          messages: [
-            {
-              role: 'user',
-              content: userContent,
-            },
-          ],
-        });
-
-        const rawContent = message.content[0]?.type === 'text' ? message.content[0].text : '';
-        const cleanJsonStr = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-        resultJson = JSON.parse(cleanJsonStr);
-
-        // Attach screenshot base64 to result JSON for UI presentation
+      if (aiResult && aiResult.data) {
+        resultJson = aiResult.data;
         if (screenshot) {
           resultJson.screenshot_base64 = screenshot.base64;
           resultJson.screenshot_url = screenshot.url;
         }
-      } catch (anthropicErr: any) {
-        console.error('Anthropic Vision API Call Failed or returned invalid JSON:', anthropicErr?.message || anthropicErr);
+      } else {
         resultJson = generateFallbackAudit(content, screenshot);
       }
-    } else {
-      console.log('No ANTHROPIC_API_KEY set or default key detected. Generating simulated Multimodal AI Vision analysis.');
+    } catch (aiErr: any) {
+      console.error('[Analyzer] AI Provider API Call Failed or returned invalid JSON:', aiErr?.message || aiErr);
       resultJson = generateFallbackAudit(content, screenshot);
     }
 

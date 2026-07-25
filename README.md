@@ -1,7 +1,7 @@
 # LandingIQ — Next-Gen AI Landing Page Optimizer & Visual CRO Auditor
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-Render-emerald?style=for-the-badge&logo=render)](https://landing-iq.onrender.com/)
-[![AI Engine](https://img.shields.io/badge/GenAI-Claude_3.5_Sonnet_Vision-amber?style=for-the-badge&logo=anthropic)](https://www.anthropic.com/)
+[![AI Engine](https://img.shields.io/badge/GenAI-Google_Gemini_%7C_Claude_%7C_OpenAI-blue?style=for-the-badge&logo=google)](https://aistudio.google.com/)
 [![Browser Engine](https://img.shields.io/badge/Headless_Capture-Playwright_Chromium-blue?style=for-the-badge&logo=playwright)](https://playwright.dev/)
 
 > **LandingIQ** is an advanced AI-powered Conversion Rate Optimization (CRO) platform that combines **Multimodal AI Vision**, high-converting copywriting engines, and automated UX usability auditing to maximize landing page conversion performance in seconds.
@@ -12,9 +12,9 @@
 
 LandingIQ integrates state-of-the-art Generative AI models to analyze both **visual layout rendering** and **text messaging hooks** simultaneously.
 
-### 1. 👁️ Multimodal AI Vision Audit (Playwright + Claude 3.5 Sonnet Vision)
+### 1. 👁️ Multimodal AI Vision Audit (Playwright + Google Gemini / Claude / OpenAI Vision)
 - **Automated Headless Screenshot Capture**: When a user inputs a website URL, backend Playwright Chromium launches a headless browser, renders the page at `1280x800` viewport, and captures a high-resolution screenshot buffer.
-- **Multimodal Visual UX Ingestion**: Passes the raw base64 PNG screenshot into **Claude 3.5 Sonnet (`claude-3-5-sonnet-20241022`)**.
+- **Multimodal Visual UX Ingestion**: Passes the raw base64 PNG screenshot into **Google Gemini (`gemini-1.5-flash`)**, **Claude 3.5 Sonnet (`claude-3-5-sonnet-20241022`)**, or **OpenAI (`gpt-4o`)**.
 - **Visual Design Metrics Evaluated**:
   - **Above-The-Fold Clarity (0-100)**: Evaluates hero headline positioning and benefit communication before scrolling.
   - **Color Contrast & Typography Readability**: Checks WCAG color contrast ratios, font weights, and text legibility.
@@ -39,7 +39,7 @@ LandingIQ integrates state-of-the-art Generative AI models to analyze both **vis
 
 ## 🛠️ Technology Stack & Architecture
 
-- **AI Engine**: Anthropic Claude 3.5 Sonnet Vision API (`@anthropic-ai/sdk`, `claude-3-5-sonnet-20241022`)
+- **AI Engine**: Multi-Provider Generic Engine supporting **Google Gemini** (`@google/generative-ai`), **Anthropic Claude** (`@anthropic-ai/sdk`), and **OpenAI** (`openai`). Zero-code provider switching via `AI_API_KEY` or provider-specific keys.
 - **Headless Browser Capture**: Playwright Chromium (`playwright`)
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide React Icons
 - **Backend**: Node.js, Express (TypeScript), Passport.js (Local bcrypt + Google OAuth 2.0)
