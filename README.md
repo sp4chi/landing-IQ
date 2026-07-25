@@ -1,44 +1,50 @@
-# LandingIQ — AI Landing Page Optimizer & Conversion Auditor
+# LandingIQ — Next-Gen AI Landing Page Optimizer & Visual CRO Auditor
 
-**LandingIQ** is a full-stack web application built for marketers and founders to perform instant, evidence-backed conversion rate optimization (CRO) audits on landing pages using Anthropic Claude (`claude-sonnet-4-6`).
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-emerald?style=for-the-badge&logo=render)](https://landing-iq.onrender.com/)
+[![AI Engine](https://img.shields.io/badge/GenAI-Claude_3.5_Sonnet_Vision-amber?style=for-the-badge&logo=anthropic)](https://www.anthropic.com/)
+[![Browser Engine](https://img.shields.io/badge/Headless_Capture-Playwright_Chromium-blue?style=for-the-badge&logo=playwright)](https://playwright.dev/)
 
----
-
-## Live Demo
-
-https://landing-iq.onrender.com/
-
+> **LandingIQ** is an advanced AI-powered Conversion Rate Optimization (CRO) platform that combines **Multimodal AI Vision**, high-converting copywriting engines, and automated UX usability auditing to maximize landing page conversion performance in seconds.
 
 ---
 
-## 🚀 Tech Stack
+## 🌟 High-Impact Generative AI Capabilities
 
-- **Frontend**: React (Vite) + TypeScript + Tailwind CSS + Lucide Icons
-- **Backend**: Node.js + Express (TypeScript)
-- **Database**: PostgreSQL with Drizzle ORM (Supports Neon / Supabase)
-- **Auth**: Passport.js (Local bcrypt hashing + Google OAuth2 strategy) + `connect-pg-simple` session store
-- **AI Engine**: Anthropic Claude API (`@anthropic-ai/sdk`, model `claude-sonnet-4-6`)
-- **Validation & Security**: Zod for request body validation + `express-rate-limit` brute-force protection
+LandingIQ integrates state-of-the-art Generative AI models to analyze both **visual layout rendering** and **text messaging hooks** simultaneously.
+
+### 1. 👁️ Multimodal AI Vision Audit (Playwright + Claude 3.5 Sonnet Vision)
+- **Automated Headless Screenshot Capture**: When a user inputs a website URL, backend Playwright Chromium launches a headless browser, renders the page at `1280x800` viewport, and captures a high-resolution screenshot buffer.
+- **Multimodal Visual UX Ingestion**: Passes the raw base64 PNG screenshot into **Claude 3.5 Sonnet (`claude-3-5-sonnet-20241022`)**.
+- **Visual Design Metrics Evaluated**:
+  - **Above-The-Fold Clarity (0-100)**: Evaluates hero headline positioning and benefit communication before scrolling.
+  - **Color Contrast & Typography Readability**: Checks WCAG color contrast ratios, font weights, and text legibility.
+  - **CTA Visual Prominence**: Assesses button background colors, padding, hover states, and glowing visual accents.
+  - **Visual Hierarchy & Whitespace**: Measures visual clutter, section padding, and top-to-bottom layout flow.
+- **Concrete CSS Fix Recommendations**: Returns actionable code and CSS color/font weight tweaks (e.g. *"Change CTA button background to high-contrast Amber `#F59E0B` with 52px height"*).
+
+### 2. 🎯 AI Conversion Copywriting & Headline Optimization Engine
+- **Psychological Hook Generation**: Analyzes page copy for value clarity, buyer friction, and subheadline alignment.
+- **High-Converting Alternatives**: Generates distinct headline options tailored to target buyer personas (e.g., Pain-Point Focused vs Outcome-Driven).
+- **Strategic Rationales**: Provides psychological explanations for why each proposed headline hook increases conversion rates.
+
+### 3. 🖱️ Smart CTA & Layout Structure Assistant
+- **CTA Button Copy Transformer**: Replaces low-friction friction words (*"Submit"*, *"Learn More"*) with high-intent benefit verbs (*"Claim My Free Audit →"*).
+- **Section Structural Tweaks**: Recommends visual structural improvements across Hero Banners, Feature Matrices, Social Proof Logos, and Pricing Cards.
+
+### 4. 🔍 Automated SEO & WCAG Accessibility Audit
+- **SEO Optimization**: Generates 50-60 character meta titles, 150-160 character meta descriptions, target keyword tags, and H1/H2 heading hierarchy fixes.
+- **WCAG Accessibility Scanner**: Identifies screen-reader gaps, label associations, and contrast violations.
 
 ---
 
-## 🗄️ Setting Up a Free PostgreSQL Database (Neon / Supabase)
+## 🛠️ Technology Stack & Architecture
 
-If you do not have a PostgreSQL database connection string yet, follow these 2-minute steps:
-
-### Option A: Neon (Recommended for zero-config Serverless Postgres)
-1. Go to [neon.tech](https://neon.tech) and create a free account.
-2. Click **Create Project**, select a region, and name your project `landingiq-db`.
-3. In your dashboard, copy the **Connection String** (starts with `postgresql://...`).
-4. Paste it as `DATABASE_URL` in your `.env` file.
-
-### Option B: Supabase
-1. Go to [supabase.com](https://supabase.com) and create a free account.
-2. Click **New Project** and set a database password.
-3. Navigate to **Project Settings** -> **Database** -> **Connection String (URI)**.
-4. Copy the connection string and paste it as `DATABASE_URL` in your `.env` file.
-
-> **Note**: For local demonstration without a Postgres database, LandingIQ also includes a built-in zero-config fallback storage driver!
+- **AI Engine**: Anthropic Claude 3.5 Sonnet Vision API (`@anthropic-ai/sdk`, `claude-3-5-sonnet-20241022`)
+- **Headless Browser Capture**: Playwright Chromium (`playwright`)
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide React Icons
+- **Backend**: Node.js, Express (TypeScript), Passport.js (Local bcrypt + Google OAuth 2.0)
+- **Database**: PostgreSQL with Drizzle ORM (Neon / Supabase), `connect-pg-simple` session store
+- **Security & Validation**: Zod schema validation + `express-rate-limit` brute-force protection
 
 ---
 
@@ -65,12 +71,7 @@ GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 PORT=3000
 ```
 
-### 3. Push Database Migrations (Drizzle ORM)
-```bash
-npm run db:push
-```
-
-### 4. Start Local Development Server
+### 3. Start Local Development Server
 ```bash
 npm run dev
 ```
@@ -78,32 +79,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Both Expres
 
 ---
 
-## 🚢 Deployment Guide (Live Hackathon Demo)
+## 🚢 Live Deployment
 
-For hosting both the Express backend and React frontend with zero cost and maximum reliability:
-
-### Recommended Option: Render / Railway (Single Node Service)
-
-1. **Push your code to GitHub**.
-2. **Log into Render** ([render.com](https://render.com)) or **Railway** ([railway.app](https://railway.app)).
-3. Click **New Web Service** and select your GitHub repository.
-4. Set the following build settings:
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm start`
-5. **Environment Variables**: Add all variables from your local `.env` file into the platform's Dashboard environment settings (`ANTHROPIC_API_KEY`, `DATABASE_URL`, `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`).
-6. Click **Deploy Web Service**. Render/Railway will build the React assets and serve the Express backend under a single URL!
-
----
-
-## 📋 API Reference
-
-- `POST /api/auth/signup` - Register with email & password (min 8 chars, hashed with bcrypt)
-- `POST /api/auth/login` - Authenticate user session
-- `POST /api/auth/logout` - Destroy session & clear cookies
-- `GET /api/auth/google` & `GET /api/auth/google/callback` - Passport Google OAuth2
-- `GET /api/auth/me` - Rehydrate logged-in user
-- `DELETE /api/auth/account` - Delete user account & associated audits
-- `POST /api/analyze` - Perform AI conversion audit (Claude `claude-sonnet-4-6`)
-- `GET /api/reports` - List all past reports for current user
-- `GET /api/reports/:id` - Fetch single audit report breakdown
-- `DELETE /api/reports/:id` - Delete saved audit report
+- **Live Render App**: [https://landing-iq.onrender.com/](https://landing-iq.onrender.com/)
