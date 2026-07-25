@@ -80,7 +80,8 @@ export const isGoogleOauthConfigured = () => {
               if (!user) {
                 user = await dbService.findUserByEmail(email);
                 if (user) {
-                  // User exists by email, link Google ID
+                  const updated = await dbService.updateUserGoogleId(user.id, googleId);
+                  if (updated) user = updated;
                 } else {
                   user = await dbService.createUser({ email, googleId });
                 }
@@ -219,12 +220,17 @@ authRouter.get(
   '/google/callback',
   (req, res, next) => {
     if (!isGoogleOauthConfigured()) {
-      return res.redirect('/login?error=google_not_configured');
+      return res.redirect('/#login?error=google_not_configured');
     }
-    passport.authenticate('google', { failureRedirect: '/login?error=google_failed' })(req, res, next);
+    passport.authenticate('google', { failureRedirect: '/#login?error=google_failed' })(req, res, next);
   },
-  (_req, res) => {
-    res.redirect('/dashboard');
+  (req, res) => {
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error post Google auth:', err);
+      }
+      res.redirect('/');
+    });
   }
 );
 

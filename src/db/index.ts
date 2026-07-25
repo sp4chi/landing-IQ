@@ -113,6 +113,22 @@ export const dbService = {
     return user || null;
   },
 
+  async updateUserGoogleId(id: string, googleId: string) {
+    if (db) {
+      const res = await db
+        .update(schema.users)
+        .set({ googleId })
+        .where(eq(schema.users.id, id))
+        .returning();
+      return res[0];
+    }
+    const user = memoryUsers.find((u) => u.id === id);
+    if (user) {
+      user.googleId = googleId;
+    }
+    return user || null;
+  },
+
   async createUser(data: { email: string; passwordHash?: string | null; googleId?: string | null }) {
     const emailLower = data.email.toLowerCase();
     if (db) {
