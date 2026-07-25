@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { ChatCopilot } from '../components/ChatCopilot';
+import { ABVariantsCard } from '../components/ABVariantsCard';
 import {
   CheckCircle2,
   Zap,
@@ -57,6 +58,24 @@ interface ResultsPageProps {
       accessibility: {
         issues: string[];
         fixes: string[];
+      };
+      ab_variants?: {
+        variant_a_pain_point?: {
+          strategy_name: string;
+          headline: string;
+          subheadline: string;
+          cta_text: string;
+          key_points: string[];
+          hypothesis: string;
+        };
+        variant_b_social_proof?: {
+          strategy_name: string;
+          headline: string;
+          subheadline: string;
+          cta_text: string;
+          key_points: string[];
+          hypothesis: string;
+        };
       };
     };
     createdAt: string | Date;
@@ -384,6 +403,9 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
             ))}
           </div>
         </div>
+
+        {/* A/B Variant Generator Experiment Card */}
+        <ABVariantsCard abVariants={data.ab_variants} />
 
         {/* CTA Recommendations Section */}
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-card">

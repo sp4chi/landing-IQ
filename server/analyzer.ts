@@ -61,6 +61,24 @@ The output JSON structure MUST match this exact schema:
   "accessibility": {
     "issues": [<contrast/readability/screen-reader concern 1>, <concern 2>],
     "fixes": [<concrete solution for issue 1>, <concrete solution for issue 2>]
+  },
+  "ab_variants": {
+    "variant_a_pain_point": {
+      "strategy_name": "Pain-Point & Agitation Focused",
+      "headline": <pain-point focused hero headline agitating buyer friction>,
+      "subheadline": <subheadline positioning immediate friction relief>,
+      "cta_text": <high-intent benefit CTA button copy>,
+      "key_points": [<value point 1>, <value point 2>, <value point 3>],
+      "hypothesis": <why agitating buyer friction increases conversions for this offer>
+    },
+    "variant_b_social_proof": {
+      "strategy_name": "Social-Proof & Authority Driven",
+      "headline": <social-proof focused hero headline featuring numbers/peer authority>,
+      "subheadline": <subheadline emphasizing category leadership and trust metrics>,
+      "cta_text": <high-intent community/authority CTA button copy>,
+      "key_points": [<value point 1>, <value point 2>, <value point 3>],
+      "hypothesis": <why social proof and peer validation increases trust for this offer>
+    }
   }
 }`;
 
@@ -154,6 +172,32 @@ function generateFallbackAudit(content: string, screenshotData?: ScreenshotResul
         'Adjust button background to #0F1B2D with crisp off-white #FAFAF8 text for 12.5:1 contrast',
         'Add aria-label and visible label tags to all interactive textareas and input fields'
       ]
+    },
+    ab_variants: {
+      variant_a_pain_point: {
+        strategy_name: 'Pain-Point & Agitation Focused',
+        headline: 'Stop Wasting 60% of Your Ad Traffic on Leaky Landing Pages',
+        subheadline: 'Eliminate hidden visual friction and low-converting CTA copy in under 30 seconds with AI-powered CRO audits.',
+        cta_text: 'Fix My Landing Page Friction →',
+        key_points: [
+          'Eliminate hidden design friction before launching paid ads',
+          'Instant WCAG & visual CTA contrast score diagnostics',
+          'Boost ROAS without increasing your marketing spend'
+        ],
+        hypothesis: 'Directly agitates buyer frustration with wasted ad spend and offers instant friction relief.'
+      },
+      variant_b_social_proof: {
+        strategy_name: 'Social-Proof & Authority Driven',
+        headline: 'Used by 2,400+ Growth Teams to Lift Conversions by 34%',
+        subheadline: 'The #1 Multimodal AI landing page auditor trusted by top SaaS, e-commerce, and agency founders.',
+        cta_text: 'Join Top Converting Brands →',
+        key_points: [
+          'Benchmark your landing page against top 1% converting sites',
+          'Verified +34% average conversion rate lift across 10k+ audits',
+          '1-Click automated multimodal visual reports'
+        ],
+        hypothesis: 'Leverages bandwagon effect, client authority metrics, and peer validation to establish instant trust.'
+      }
     }
   };
 }

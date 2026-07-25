@@ -52,6 +52,11 @@
 - **Multi-Provider Conversational Failover**: Added `executeAIChat` in `server/ai-provider.ts` supporting multi-turn chat across Gemini, Groq, Hugging Face, Anthropic, and OpenAI.
 - **UX Features**: Floating trigger button, glassmorphism modal, quick prompt chips (*"Fix CTA contrast"*, *"Write 3 hero headlines"*), provider badges (`Powered by Gemini 2.0`), typing animations, and markdown formatting.
 
+### 6. Scoped A/B Variant Generator Engine ([`src/components/ABVariantsCard.tsx`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/src/components/ABVariantsCard.tsx) & [`server/analyzer.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/analyzer.ts))
+- **Objective**: Generate two distinct high-converting text variants for any landing page audit: **Variant A (Pain-Point & Agitation Focused)** vs **Variant B (Social-Proof & Authority Driven)**.
+- **Backend Integration**: Updated `SYSTEM_PROMPT` schema and `generateFallbackAudit()` in `server/analyzer.ts` to output `ab_variants` JSON with headlines, subheadlines, CTA button copy, key value bullets, and psychological conversion hypotheses.
+- **UX Features**: Interactive A/B Experimentation Card with tab switcher, strategy badges, conversion hypothesis callouts, live hero card previews, and 1-click **Copy Current Variant Copy** button.
+
 ---
 
 ## 🔬 Commit History Summary
@@ -68,4 +73,5 @@
 | `baeaacb` | `feat: add cloud screenshot service fallback to vision.ts for 100% real webpage screenshot capture on Render` |
 | `51ff27e` | `fix: update Groq and Hugging Face model identifiers and payload formatting for free tier` |
 | `36b376e` | `docs: update README.md with detailed GenAI tools breakdown and Playwright vs Vision AI explanation` |
-| `feat` | `feat: implement Interactive AI Chat Copilot widget reusing report context with multi-provider failover` |
+| `e128a44` | `feat: implement Interactive AI Chat Copilot widget reusing report context with multi-provider failover` |
+| `feat` | `feat: implement Scoped A/B Variant Generator (Pain-Point vs Social-Proof) with interactive experiment card` |
