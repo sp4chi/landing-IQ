@@ -66,8 +66,8 @@ async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult 
   const pageText = await fetchWebpageText(cleanUrl);
 
   try {
-    // 1. Try Microlink Public Screenshot API
-    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false`);
+    // 1. Try Microlink Public Screenshot API with 3.5s delay for page hydration
+    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false&waitForTimeout=3500&waitUntil=networkidle`);
     if (microLinkRes.ok) {
       const json = await microLinkRes.json();
       const screenshotUrl = json.data?.screenshot?.url;
@@ -157,14 +157,21 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
 
     const page = await context.newPage();
     
-    // Navigate with a generous timeout and domcontentloaded strategy
-    await page.goto(cleanUrl, {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000,
-    });
+    // Navigate with generous timeout and full load strategy
+    try {
+      await page.goto(cleanUrl, {
+        waitUntil: 'load',
+        timeout: 25000,
+      });
+      // Additional check to wait for network connections & fonts to settle
+      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+    } catch (gotoErr: any) {
+      console.warn(`[Vision] Navigation warning for ${cleanUrl}: ${gotoErr?.message || gotoErr}. Proceeding to capture current state...`);
+    }
 
-    // Short pause for CSS/animations to stabilize
-    await page.waitForTimeout(1000);
+    // 3.5 second stabilization pause for React hydration, CSS animations, fonts, and hero images
+    console.log(`[Vision] Pausing 3.5s for page rendering, fonts, and hero images to stabilize...`);
+    await page.waitForTimeout(3500);
 
     // Extract actual page text body via Playwright page.innerText('body')
     try {
