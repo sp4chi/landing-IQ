@@ -383,3 +383,171 @@ export async function executeAIAnalysis(request: AIAnalysisRequest): Promise<AIP
 
   throw lastErr;
 }
+
+export interface AIChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface AIChatResult {
+  providerName: string;
+  text: string;
+}
+
+/**
+ * Chat completion helper for Google Gemini
+ */
+async function chatWithGemini(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const candidateModels = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+  let lastErr: any = null;
+
+  for (const modelName of candidateModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: systemPrompt,
+      });
+
+      const contents = messages.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+
+      const result = await model.generateContent({ contents });
+      return result.response.text();
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr;
+}
+
+/**
+ * Chat completion helper for Groq Cloud
+ */
+async function chatWithGroq(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
+  const groq = new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' });
+  const candidateModels = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'llama-3.2-11b-vision-preview'];
+  let lastErr: any = null;
+
+  for (const modelName of candidateModels) {
+    try {
+      const formattedMessages = [
+        { role: 'system', content: systemPrompt },
+        ...messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ];
+      const response = await groq.chat.completions.create({
+        model: modelName,
+        messages: formattedMessages as any,
+      });
+      return response.choices[0]?.message?.content || '';
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr;
+}
+
+/**
+ * Chat completion helper for Hugging Face
+ */
+async function chatWithHuggingFace(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
+  const hf = new OpenAI({ apiKey, baseURL: 'https://router.huggingface.co/hf-inference/v1' });
+  const candidateModels = ['Qwen/Qwen2.5-72B-Instruct', 'Qwen/Qwen2.5-Coder-32B-Instruct', 'meta-llama/Llama-3.2-3B-Instruct'];
+  let lastErr: any = null;
+
+  for (const modelName of candidateModels) {
+    try {
+      const formattedMessages = [
+        { role: 'system', content: systemPrompt },
+        ...messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+      ];
+      const response = await hf.chat.completions.create({
+        model: modelName,
+        messages: formattedMessages as any,
+      });
+      return response.choices[0]?.message?.content || '';
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr;
+}
+
+/**
+ * Chat completion helper for Anthropic Claude
+ */
+async function chatWithAnthropic(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
+  const anthropic = new Anthropic({ apiKey });
+  const userMessages = messages.map((m) => ({
+    role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
+    content: m.content,
+  }));
+  const message = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 2000,
+    system: systemPrompt,
+    messages: userMessages,
+  });
+  return message.content[0]?.type === 'text' ? message.content[0].text : '';
+}
+
+/**
+ * Chat completion helper for OpenAI
+ */
+async function chatWithOpenAI(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
+  const openai = new OpenAI({ apiKey });
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
+    ],
+  });
+  return response.choices[0]?.message?.content || '';
+}
+
+/**
+ * Execute interactive chat completion with multi-provider fallback
+ */
+export async function executeAIChat(messages: AIChatMessage[], systemPrompt: string): Promise<AIChatResult | null> {
+  const configs = getAllConfiguredProviders();
+  if (configs.length === 0) {
+    return null;
+  }
+
+  let lastErr: any = null;
+  for (const config of configs) {
+    const { provider, apiKey } = config;
+    try {
+      let text = '';
+      if (provider === 'gemini') {
+        text = await chatWithGemini(apiKey, messages, systemPrompt);
+      } else if (provider === 'groq') {
+        text = await chatWithGroq(apiKey, messages, systemPrompt);
+      } else if (provider === 'huggingface') {
+        text = await chatWithHuggingFace(apiKey, messages, systemPrompt);
+      } else if (provider === 'anthropic') {
+        text = await chatWithAnthropic(apiKey, messages, systemPrompt);
+      } else if (provider === 'openai') {
+        text = await chatWithOpenAI(apiKey, messages, systemPrompt);
+      }
+
+      if (text) {
+        return {
+          providerName: provider,
+          text,
+        };
+      }
+    } catch (err: any) {
+      console.warn(`[AI Chat Copilot] Provider '${provider}' failed: ${err?.message || err}. Trying next provider...`);
+      lastErr = err;
+    }
+  }
+
+  throw lastErr;
+}

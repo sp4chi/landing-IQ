@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ScoreGauge } from '../components/ScoreGauge';
+import { ChatCopilot } from '../components/ChatCopilot';
 import {
   CheckCircle2,
   Zap,
@@ -494,6 +495,9 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Interactive AI Chat Copilot Widget */}
+      <ChatCopilot reportId={report.id} reportTitle={report.title} />
     </div>
   );
 };
