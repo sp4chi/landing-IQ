@@ -70,36 +70,49 @@ export function resolveAIConfig(customKey?: string): { provider: AIProviderType;
  * Analyze landing page using Google Gemini API
  */
 async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Promise<any> {
-  console.log('[AI Provider] Executing Landing Page Analysis via Google Gemini (gemini-1.5-flash)...');
+  console.log('[AI Provider] Executing Landing Page Analysis via Google Gemini...');
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    systemInstruction: request.systemPrompt,
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.2,
-    },
-  });
 
-  const contents: any[] = [];
-  if (request.screenshot && request.screenshot.base64) {
-    contents.push({
-      inlineData: {
-        data: request.screenshot.base64,
-        mimeType: request.screenshot.mimeType || 'image/png',
-      },
-    });
-    contents.push(
-      `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`
-    );
-  } else {
-    contents.push(`Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`);
+  const candidateModels = ['gemini-1.5-flash-latest', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro-latest'];
+  let lastError: any = null;
+
+  for (const modelName of candidateModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: request.systemPrompt,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+        },
+      });
+
+      const contents: any[] = [];
+      if (request.screenshot && request.screenshot.base64) {
+        contents.push({
+          inlineData: {
+            data: request.screenshot.base64,
+            mimeType: request.screenshot.mimeType || 'image/png',
+          },
+        });
+        contents.push(
+          `Above is the actual rendered visual screenshot of the landing page captured via Playwright.\nAnalyze both this visual screenshot image AND the text copy provided below for conversion optimization.\n\nLanding Page Content / URL Context:\n${request.content}`
+        );
+      } else {
+        contents.push(`Please perform a detailed conversion audit on the following landing page content:\n\n${request.content}`);
+      }
+
+      const result = await model.generateContent(contents);
+      const text = result.response.text();
+      const cleanJsonStr = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+      return JSON.parse(cleanJsonStr);
+    } catch (err: any) {
+      console.warn(`[AI Provider] Gemini model '${modelName}' attempt failed (${err?.message || err}). Trying next model variant...`);
+      lastError = err;
+    }
   }
 
-  const result = await model.generateContent(contents);
-  const text = result.response.text();
-  const cleanJsonStr = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-  return JSON.parse(cleanJsonStr);
+  throw lastError;
 }
 
 /**
