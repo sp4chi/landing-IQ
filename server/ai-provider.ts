@@ -20,50 +20,73 @@ export interface AIProviderResult {
 
 export type AIProviderType = 'gemini' | 'anthropic' | 'openai';
 
+export interface ResolvedConfig {
+  provider: AIProviderType;
+  apiKey: string;
+}
+
 /**
- * Detect provider type and active API key from environment variables or key string prefix.
+ * Classify provider type strictly by key format prefix or variable suggestion
  */
-export function resolveAIConfig(customKey?: string): { provider: AIProviderType; apiKey: string } | null {
-  const explicitProvider = process.env.AI_PROVIDER?.toLowerCase() as AIProviderType | undefined;
-
-  // 1. Check unified or custom API key first
-  const unifiedKey = customKey || process.env.AI_API_KEY;
-  if (unifiedKey && unifiedKey.trim() !== '') {
-    const key = unifiedKey.trim();
-    if (key.startsWith('AIza')) {
-      return { provider: 'gemini', apiKey: key };
-    }
-    if (key.startsWith('sk-ant')) {
-      return { provider: 'anthropic', apiKey: key };
-    }
-    if (key.startsWith('sk-')) {
-      return { provider: 'openai', apiKey: key };
-    }
-    // If provider is explicitly specified along with universal key
-    if (explicitProvider && ['gemini', 'anthropic', 'openai'].includes(explicitProvider)) {
-      return { provider: explicitProvider, apiKey: key };
-    }
-    // Default prefix fallback for unknown universal key format
-    return { provider: 'gemini', apiKey: key };
+function classifyKey(key: string, suggestedProvider?: AIProviderType): ResolvedConfig | null {
+  const trimmed = key.trim();
+  if (!trimmed || trimmed.includes('your_') || trimmed.includes('_here')) {
+    return null;
   }
 
-  // 2. Check provider-specific environment keys
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey && geminiKey.trim() !== '' && geminiKey !== 'your_gemini_api_key_here') {
-    return { provider: 'gemini', apiKey: geminiKey.trim() };
+  if (trimmed.startsWith('AIza')) {
+    return { provider: 'gemini', apiKey: trimmed };
+  }
+  if (trimmed.startsWith('sk-ant')) {
+    return { provider: 'anthropic', apiKey: trimmed };
+  }
+  if (trimmed.startsWith('sk-')) {
+    return { provider: 'openai', apiKey: trimmed };
   }
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (anthropicKey && anthropicKey.trim() !== '' && anthropicKey !== 'your_anthropic_api_key_here') {
-    return { provider: 'anthropic', apiKey: anthropicKey.trim() };
+  if (suggestedProvider) {
+    return { provider: suggestedProvider, apiKey: trimmed };
   }
 
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (openaiKey && openaiKey.trim() !== '' && openaiKey !== 'your_openai_api_key_here') {
-    return { provider: 'openai', apiKey: openaiKey.trim() };
+  return { provider: 'gemini', apiKey: trimmed };
+}
+
+/**
+ * Returns a list of all configured AI providers in order of execution preference.
+ */
+export function getAllConfiguredProviders(): ResolvedConfig[] {
+  const configs: ResolvedConfig[] = [];
+  const addedKeys = new Set<string>();
+
+  const add = (config: ResolvedConfig | null) => {
+    if (config && !addedKeys.has(config.apiKey)) {
+      addedKeys.add(config.apiKey);
+      configs.push(config);
+    }
+  };
+
+  if (process.env.AI_API_KEY) {
+    add(classifyKey(process.env.AI_API_KEY));
+  }
+  if (process.env.GEMINI_API_KEY) {
+    add(classifyKey(process.env.GEMINI_API_KEY, 'gemini'));
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    add(classifyKey(process.env.ANTHROPIC_API_KEY, 'anthropic'));
+  }
+  if (process.env.OPENAI_API_KEY) {
+    add(classifyKey(process.env.OPENAI_API_KEY, 'openai'));
   }
 
-  return null;
+  return configs;
+}
+
+export function resolveAIConfig(customKey?: string): ResolvedConfig | null {
+  if (customKey) {
+    return classifyKey(customKey);
+  }
+  const all = getAllConfiguredProviders();
+  return all.length > 0 ? all[0] : null;
 }
 
 /**
@@ -78,7 +101,6 @@ async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Pr
     'gemini-2.0-flash-lite',
     'gemini-1.5-flash',
     'gemini-1.5-pro',
-    'gemini-2.0-pro-exp-02-05',
   ];
   let lastError: any = null;
 
@@ -113,7 +135,7 @@ async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Pr
       const cleanJsonStr = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
       return JSON.parse(cleanJsonStr);
     } catch (err: any) {
-      console.warn(`[AI Provider] Gemini model '${modelName}' attempt failed (${err?.message || err}). Trying next model variant...`);
+      console.warn(`[AI Provider] Gemini model '${modelName}' attempt failed (${err?.message || err}). Trying next candidate model...`);
       lastError = err;
     }
   }
@@ -207,28 +229,39 @@ async function analyzeWithOpenAI(apiKey: string, request: AIAnalysisRequest): Pr
 }
 
 /**
- * Execute AI Analysis across the auto-detected provider
+ * Execute AI Analysis with automatic multi-provider fallback
  */
 export async function executeAIAnalysis(request: AIAnalysisRequest): Promise<AIProviderResult | null> {
-  const config = resolveAIConfig();
-  if (!config) {
+  const configs = getAllConfiguredProviders();
+  if (configs.length === 0) {
     console.log('[AI Provider] No valid AI API key detected (AI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY). Using fallback audit.');
     return null;
   }
 
-  const { provider, apiKey } = config;
-  let data: any = null;
+  let lastErr: any = null;
+  for (const config of configs) {
+    const { provider, apiKey } = config;
+    try {
+      let data: any = null;
+      if (provider === 'gemini') {
+        data = await analyzeWithGemini(apiKey, request);
+      } else if (provider === 'anthropic') {
+        data = await analyzeWithAnthropic(apiKey, request);
+      } else if (provider === 'openai') {
+        data = await analyzeWithOpenAI(apiKey, request);
+      }
 
-  if (provider === 'gemini') {
-    data = await analyzeWithGemini(apiKey, request);
-  } else if (provider === 'anthropic') {
-    data = await analyzeWithAnthropic(apiKey, request);
-  } else if (provider === 'openai') {
-    data = await analyzeWithOpenAI(apiKey, request);
+      if (data) {
+        return {
+          providerName: provider,
+          data,
+        };
+      }
+    } catch (err: any) {
+      console.warn(`[AI Provider] Provider '${provider}' failed: ${err?.message || err}. Attempting next available provider...`);
+      lastErr = err;
+    }
   }
 
-  return {
-    providerName: provider,
-    data,
-  };
+  throw lastErr;
 }
