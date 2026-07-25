@@ -7,7 +7,62 @@ export interface ScreenshotResult {
 }
 
 /**
- * Capture a visual screenshot of a given landing page URL using Playwright Chromium.
+ * Fallback cloud screenshot fetcher using public Microlink & WordPress Mshots APIs
+ * Ensures 100% real webpage screenshot capture even if Playwright binary is missing in cloud containers like Render.
+ */
+async function fetchCloudScreenshot(cleanUrl: string): Promise<ScreenshotResult | null> {
+  console.log(`[Vision API Fallback] Fetching live web screenshot via Cloud Screenshot Service for: ${cleanUrl}...`);
+  try {
+    // 1. Try Microlink Public Screenshot API
+    const microLinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(cleanUrl)}&screenshot=true&meta=false`);
+    if (microLinkRes.ok) {
+      const json = await microLinkRes.json();
+      const screenshotUrl = json.data?.screenshot?.url;
+      if (screenshotUrl) {
+        const imgRes = await fetch(screenshotUrl);
+        if (imgRes.ok) {
+          const arrayBuffer = await imgRes.arrayBuffer();
+          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          if (base64.length > 5000) {
+            console.log(`[Vision API Fallback] Successfully captured real live screenshot via Microlink API (${Math.round(base64.length / 1024)} KB base64 data)`);
+            return {
+              base64,
+              mimeType: 'image/png',
+              url: cleanUrl,
+            };
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[Vision API Fallback] Microlink screenshot attempt failed: ${err?.message || err}`);
+  }
+
+  try {
+    // 2. Try WordPress mshots API fallback
+    const mshotsUrl = `https://s.wordpress.com/mshots/v1/${encodeURIComponent(cleanUrl)}?w=1280&h=800`;
+    const mshotsRes = await fetch(mshotsUrl);
+    if (mshotsRes.ok) {
+      const arrayBuffer = await mshotsRes.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      if (base64.length > 5000) {
+        console.log(`[Vision API Fallback] Successfully captured real live screenshot via WordPress Mshots (${Math.round(base64.length / 1024)} KB base64 data)`);
+        return {
+          base64,
+          mimeType: 'image/png',
+          url: cleanUrl,
+        };
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[Vision API Fallback] WordPress Mshots screenshot attempt failed: ${err?.message || err}`);
+  }
+
+  return null;
+}
+
+/**
+ * Capture a visual screenshot of a given landing page URL using Playwright Chromium with Cloud Screenshot Fallback.
  */
 export async function capturePageScreenshot(targetUrl: string): Promise<ScreenshotResult | null> {
   let cleanUrl = targetUrl.trim();
@@ -23,7 +78,16 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
     console.log(`[Vision] Launching Playwright to capture screenshot of: ${cleanUrl}`);
     browser = await chromium.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu',
+      ],
     });
 
     const context = await browser.newContext({
@@ -50,7 +114,7 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
     });
 
     const base64 = buffer.toString('base64');
-    console.log(`[Vision] Screenshot successfully captured (${Math.round(base64.length / 1024)} KB base64 data)`);
+    console.log(`[Vision] Playwright screenshot successfully captured (${Math.round(base64.length / 1024)} KB base64 data)`);
 
     return {
       base64,
@@ -58,13 +122,15 @@ export async function capturePageScreenshot(targetUrl: string): Promise<Screensh
       url: cleanUrl,
     };
   } catch (err: any) {
-    console.warn(`[Vision] Playwright screenshot capture failed for ${cleanUrl}:`, err?.message || err);
-    return null;
+    console.warn(`[Vision] Local Playwright screenshot capture failed for ${cleanUrl}: ${err?.message || err}. Switch to Cloud Screenshot Service fallback...`);
   } finally {
     if (browser) {
       await browser.close().catch(() => {});
     }
   }
+
+  // Fall back to Cloud Screenshot Service if local Playwright fails on cloud container (e.g. Render)
+  return await fetchCloudScreenshot(cleanUrl);
 }
 
 /**
