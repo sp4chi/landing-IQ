@@ -83,7 +83,7 @@ app.get('/api/health', (_req, res) => {
 
 // Serve frontend assets
 if (process.env.NODE_ENV === 'production') {
-  const distPath = path.resolve(__dirname, '../../dist');
+  const distPath = path.resolve(process.cwd(), 'dist');
   app.use(express.static(distPath));
   app.get('*', (_req, res) => {
     res.sendFile(path.resolve(distPath, 'index.html'));
