@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "build": "npx playwright install chromium --with-deps && tsc && vite build",
+    "build": "npx playwright install chromium && tsc && vite build",
     "start": "tsx server/index.ts",
     "db:push": "drizzle-kit push:pg"
   },
