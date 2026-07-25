@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAFAF8;
+    color: #0F1B2D;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom visual utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(15, 27, 45, 0.08);
+  box-shadow: 0 4px 20px rgba(15, 27, 45, 0.04);
+}
+
+.dark-card {
+  background-color: #0F1B2D;
+  color: #FAFAF8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Pulse shimmer for loading states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #F2F5F9 25%, #E8ECF2 50%, #F2F5F9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite;
+}
+
+/* Focus visible styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #F5A623;
+  outline-offset: 2px;
+}
