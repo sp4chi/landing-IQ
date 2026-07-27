@@ -1,39 +1,64 @@
 # LandingIQ — Next-Gen AI Landing Page Optimizer & Visual CRO Auditor
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Render-emerald?style=for-the-badge&logo=render)](https://landing-iq.onrender.com/)
+[![AWS EC2 Production](https://img.shields.io/badge/Live_Domain-AWS_EC2_%2B_DuckDNS-orange?style=for-the-badge&logo=amazon-aws)](https://landingiq.duckdns.org/)
+[![Render Cloud Backup](https://img.shields.io/badge/Live_Demo-Render_Cloud-emerald?style=for-the-badge&logo=render)](https://landing-iq.onrender.com/)
 [![GenAI Engine](https://img.shields.io/badge/GenAI-Gemini_%7C_Groq_%7C_HuggingFace_%7C_Claude_%7C_OpenAI-blue?style=for-the-badge&logo=google)](https://aistudio.google.com/)
 [![Capture Engine](https://img.shields.io/badge/Screenshot_Engine-Playwright_%2B_Cloud_Fallback-purple?style=for-the-badge&logo=playwright)](https://playwright.dev/)
 
-> **LandingIQ** is an advanced AI-powered Conversion Rate Optimization (CRO) platform that combines **Multimodal AI Vision**, high-converting copywriting engines, and automated UX usability auditing to evaluate and optimize landing page performance in seconds.
+> **LandingIQ** is an advanced AI-powered Conversion Rate Optimization (CRO) platform that combines **Multimodal AI Vision**, high-converting copywriting engines, local deterministic NLP metrics, and automated UX usability auditing to evaluate and optimize landing page performance in seconds.
 
 ---
 
-## 🤖 Generative AI Tools & Multimodal Vision Models Used
+## 🌐 Production & Live Demo URLs
 
-LandingIQ features a **zero-code, provider-agnostic AI layer** ([`server/ai-provider.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/ai-provider.ts)). It ingests both **rendered webpage screenshot buffers** and **text copy** simultaneously using state-of-the-art **Vision-to-Text Generative AI models**.
+- **Primary AWS EC2 Production (Automated HTTPS via DuckDNS + Caddy)**:  
+  👉 **[https://landingiq.duckdns.org/](https://landingiq.duckdns.org/)**
+- **Render Cloud Instance**:  
+  👉 **[https://landing-iq.onrender.com/](https://landing-iq.onrender.com/)**
+- **AI Model Debugger API Endpoint**:  
+  👉 [https://landingiq.duckdns.org/api/debug-models](https://landingiq.duckdns.org/api/debug-models)
 
-### Supported GenAI Providers & Models:
+---
 
-| GenAI Provider | Key Prefix | Primary Models Used | Cost Tier | Capabilities |
+## 🤖 AI Models & Deterministic NLP Layer Used
+
+LandingIQ features a **zero-code, provider-agnostic AI layer** ([`server/ai-provider.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/ai-provider.ts)) combined with a **deterministic local ML/NLP layer** ([`server/ml-analysis.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/ml-analysis.ts)).
+
+### 1. Generative AI LLM & Multimodal Vision Models
+
+| GenAI Provider | Key Prefix | Primary & Fallback Candidate Models | Cost Tier | Key Capabilities |
 | :--- | :--- | :--- | :--- | :--- |
-| **Google Gemini** | `AIza...` | `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-1.5-flash` | **Free Tier Available** | Multimodal Vision + Structured JSON Generation |
-| **Groq Cloud** | `gsk_...` | `llama-3.2-11b-vision-preview`, `llama-3.2-90b-vision-preview`, `llama-3.3-70b-versatile` | **100% Free** | Ultra-Fast Llama 3.2 Vision & Copy Analysis |
-| **Hugging Face** | `hf_...` | `Qwen/Qwen2.5-Coder-32B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`, `Llama-3.2-3B` | **100% Free** | Open-Source LLM Serverless Inference |
-| **Anthropic Claude** | `sk-ant...` | `claude-3-5-sonnet-20241022` | Paid | Multimodal Claude 3.5 Vision UX Audit |
-| **OpenAI** | `OPENAI_API_KEY` | `gpt-4o` | Paid | GPT-4o Vision JSON Mode Audit |
+| **Google Gemini** | `AIza...` | **`gemini-2.0-flash`**, `gemini-2.0-flash-lite`, `gemini-1.5-flash`, `gemini-1.5-pro` | **Free Tier** | Primary multimodal vision engine + structured JSON mode |
+| **Groq Cloud** | `gsk_...` | **`llama-3.2-11b-vision-preview`**, `llama-3.2-90b-vision-preview`, **`llama-3.3-70b-versatile`**, `llama3-70b-8192`, `mixtral-8x7b-32768` | **100% Free** | Sub-500ms ultra-fast Llama 3.2 Vision & 70B text inference |
+| **Hugging Face** | `hf_...` | **`Qwen/Qwen2.5-Coder-32B-Instruct`**, `Qwen/Qwen2.5-72B-Instruct`, `meta-llama/Llama-3.2-3B-Instruct`, `mistralai/Mistral-7B-Instruct-v0.3` | **100% Free** | Open-source LLM serverless inference API |
+| **Anthropic Claude** | `sk-ant...` | **`claude-3-5-sonnet-20241022`** | Paid | High-precision visual UX & CRO copywriting audit |
+| **OpenAI** | `sk-...` | **`gpt-4o`** | Paid | Multimodal GPT-4o vision + JSON completion |
+
+---
+
+### 2. Local Deterministic ML/NLP Analysis Layer (Runs on Server — Zero API Key Needed)
+
+In addition to LLMs, every landing page audit runs an independent, local deterministic NLP module ([`server/ml-analysis.ts`](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/server/ml-analysis.ts)) with no external API calls:
+
+- **Readability Scoring (`text-readability`)**:
+  - **Flesch Reading Ease**: Scores text readability from 0 to 100.
+  - **Flesch-Kincaid Grade Level**: Evaluates US grade reading level required.
+  - **Gunning Fog Index**: Calculates complexity based on sentence length and complex multi-syllable word percentage.
+- **TF-IDF Keyword Extraction (`natural`)**:
+  - Extracts top high-weight keywords using Term Frequency–Inverse Document Frequency algorithms.
+- **WCAG Color Contrast Analysis (`sharp`)**:
+  - Analyzes image pixel luminance and calculates minimum/maximum color contrast ratios against WCAG AA standards (4.5:1 ratio threshold).
 
 ---
 
 ## 💡 How Playwright & Vision AI Work Together
 
-It is important to distinguish between the **Browser Renderer** and the **Vision AI Engine**:
-
 $$\text{Web URL} \xrightarrow[\text{Headless Browser Renderer}]{\text{Playwright / Cloud Fallback}} \text{PNG Screenshot} \xrightarrow[\text{Vision-to-Text LLM}]{\text{Google Gemini / Groq / Claude}} \text{Structured JSON CRO Audit}$$
 
 1. **Headless Browser Renderer (Playwright Chromium + Cloud Fallback)**:
-   - **Playwright Chromium** opens an invisible browser, renders the target website URL at `1280x800` viewport, and captures a high-resolution PNG screenshot.
-   - **Cloud Screenshot Fallback**: If running in a cloud container (like Render) where Playwright Chromium binaries fail, the system automatically fetches live high-res screenshots via public **Microlink** and **WordPress Mshots** APIs.
-2. **Multimodal Vision-to-Text AI Engine**:
+   - **Playwright Chromium** opens a browser, renders the website URL at `1280x800` viewport, and captures a high-resolution PNG screenshot.
+   - **Cloud Fallback**: If running in lightweight cloud environments where Playwright binaries fail, the system automatically fetches live high-res screenshots via public **Microlink**, **Thum.io**, and **WordPress Mshots** APIs.
+2. **Multimodal Vision AI Engine**:
    - The base64 PNG screenshot buffer is passed directly into the active Vision AI model.
    - The model **"sees"** the visual image like a human UX expert, evaluating visual contrast, typography legibility, CTA button prominence, and above-the-fold benefit clarity.
 
@@ -82,11 +107,12 @@ If a primary provider encounters rate limits (`429 Quota Exceeded`), credit issu
 ## 🛠️ Technology Stack & Architecture
 
 - **Generative AI Engine**: Multi-Provider Generic Engine supporting Google Gemini (`@google/generative-ai`), Groq Cloud, Hugging Face, Anthropic Claude (`@anthropic-ai/sdk`), and OpenAI (`openai`).
-- **Headless Screenshot Engine**: Playwright Chromium (`playwright`) + Microlink & WordPress Mshots Cloud Fallback API.
+- **Local ML/NLP Layer**: `text-readability` (Flesch & Gunning Fog), `natural` (TF-IDF), `sharp` (WCAG Contrast).
+- **Headless Screenshot Engine**: Playwright Chromium (`playwright`) + Microlink, Thum.io & WordPress Mshots Cloud Fallback API.
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide React Icons.
 - **Backend**: Node.js, Express (TypeScript), Passport.js (Local bcrypt + Google OAuth 2.0).
 - **Database**: PostgreSQL with Drizzle ORM (Neon / Supabase), `connect-pg-simple` session store.
-- **Security & Validation**: Zod schema validation + `express-rate-limit` brute-force protection.
+- **DevOps & Infrastructure**: Docker Multi-Stage Build, AWS EC2 (Ubuntu), Caddy 2 Reverse Proxy (Automated DuckDNS Let's Encrypt HTTPS), GitHub Actions CI/CD.
 
 ---
 
@@ -104,11 +130,9 @@ cp .env.example .env
 ```
 Fill in your credentials in `.env`:
 ```env
-# Multi-Provider AI API Key (Supports Google Gemini, Groq, Hugging Face, Anthropic, OpenAI)
-AI_API_KEY=your_ai_api_key_here
+# Multi-Provider AI API Keys (Supports Gemini, Groq, Hugging Face, Anthropic, OpenAI)
 GEMINI_API_KEY=your_gemini_api_key_here
 GROQ_API_KEY=your_groq_api_key_here
-HF_API_KEY=your_huggingface_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 
@@ -126,14 +150,15 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Both Expres
 
 ---
 
-## 📄 Developer Documentation
+## 📘 Documentation & Deployment Architecture
 
+- 🚀 **[Enterprise AWS EC2, Docker & DuckDNS Production Deployment Guide](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/docs/PRODUCTION_DEPLOYMENT_GUIDE.md)**
 - 📘 **[Technical Project Summary & Architecture Overview](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/PROJECT_SUMMARY.md)**
 - 📄 **[Developer Changelog & Activity Log](file:///Users/kaushikgohainbora/Desktop/hackathon4.0/DEV_LOG.md)**
 
 ---
 
-## 🚢 Live Deployment
+## 🚢 Live Production Deployment
 
-- **Live Application**: [https://landing-iq.onrender.com/](https://landing-iq.onrender.com/)
-- **Model Debugger Endpoint**: [https://landing-iq.onrender.com/api/debug-models](https://landing-iq.onrender.com/api/debug-models)
+- **AWS EC2 Production (DuckDNS + Caddy HTTPS)**: [https://landingiq.duckdns.org/](https://landingiq.duckdns.org/)
+- **Render Cloud Instance**: [https://landing-iq.onrender.com/](https://landing-iq.onrender.com/)
