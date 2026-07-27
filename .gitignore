@@ -41,3 +41,4 @@ vite.config.ts.timestamp-*
 scratch
 .gemini
 *.txt
+*.pem
