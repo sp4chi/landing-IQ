@@ -2,10 +2,11 @@ version: '3.8'
 
 services:
   app:
-    build: .
+    # Replace YOUR_DOCKERHUB_USERNAME with your actual Docker Hub username.
+    # This pulls the image GitHub Actions already built — EC2 never runs
+    # "docker build" itself anymore, which is what was exhausting its RAM.
+    image: sp4chi/landingiq:latest
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     expose:
       - "3000"
     environment:
@@ -16,8 +17,6 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
-    # Note: no "ports" here — only Caddy is exposed publicly.
-    # The app is only reachable through the reverse proxy, which is more secure.
 
   caddy:
     image: caddy:2-alpine
