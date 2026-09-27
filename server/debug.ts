@@ -3,6 +3,9 @@ import { Router } from 'express';
 export const debugRouter = Router();
 
 debugRouter.get('/debug-models', async (req, res) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ error: 'You must be logged in to view AI provider diagnostics' });
+  }
   try {
     const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
     if (!apiKey) {

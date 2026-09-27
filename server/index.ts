@@ -30,9 +30,29 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // CORS
+// Reflecting any Origin (origin: true) while credentials are enabled lets any
+// site make cookie-authenticated requests to this API from a victim's browser.
+// Restrict to the actual known frontends instead.
+const defaultAllowedOrigins = [
+  'https://landingiq.duckdns.org',
+  'https://landing-iq.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+  : defaultAllowedOrigins;
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // No Origin header (server-to-server, curl, same-origin navigation) - allow.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      console.warn(`[CORS] Blocked request from disallowed origin: ${origin}`);
+      return callback(null, false);
+    },
     credentials: true,
   })
 );

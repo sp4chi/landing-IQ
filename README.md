@@ -15,7 +15,7 @@
   👉 **[https://landingiq.duckdns.org/](https://landingiq.duckdns.org/)**
 - **Render Cloud Instance**:  
   👉 **[https://landing-iq.onrender.com/](https://landing-iq.onrender.com/)**
-- **AI Model Debugger API Endpoint**:  
+- **AI Model Debugger API Endpoint** (requires login):  
   👉 [https://landingiq.duckdns.org/api/debug-models](https://landingiq.duckdns.org/api/debug-models)
 
 ---
