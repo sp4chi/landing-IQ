@@ -109,10 +109,10 @@ async function analyzeWithGemini(apiKey: string, request: AIAnalysisRequest): Pr
   const genAI = new GoogleGenerativeAI(apiKey);
 
   const candidateModels = [
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
+    'gemini-flash-latest',
+    'gemini-3.8-flash',
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash-lite',
   ];
   let lastError: any = null;
 
@@ -166,9 +166,9 @@ async function analyzeWithGroq(apiKey: string, request: AIAnalysisRequest): Prom
   });
 
   const hasScreenshot = Boolean(request.screenshot && request.screenshot.base64);
-  const candidateModels = hasScreenshot
-    ? ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview', 'llama-3.3-70b-versatile']
-    : ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
+  // Groq's currently available catalog has no vision-capable models on this account tier;
+  // these all degrade gracefully to text-only analysis (isVisionModel check below stays false).
+  const candidateModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
 
   let lastError: any = null;
   for (const modelName of candidateModels) {
@@ -221,14 +221,15 @@ async function analyzeWithHuggingFace(apiKey: string, request: AIAnalysisRequest
   console.log('[AI Provider] Executing Landing Page Analysis via Hugging Face Inference API...');
   const hf = new OpenAI({
     apiKey,
-    baseURL: 'https://router.huggingface.co/hf-inference/v1',
+    // Unified router (no pinned provider segment) - lets HF auto-route to whichever
+    // backing inference provider (novita/fireworks/deepinfra/etc.) currently serves the model.
+    baseURL: 'https://router.huggingface.co/v1',
   });
 
   const candidateModels = [
-    'Qwen/Qwen2.5-Coder-32B-Instruct',
-    'Qwen/Qwen2.5-72B-Instruct',
-    'meta-llama/Llama-3.2-3B-Instruct',
-    'mistralai/Mistral-7B-Instruct-v0.3',
+    'Qwen/Qwen3.8-27B',
+    'deepseek-ai/DeepSeek-V4.1-Flash',
+    'zai-org/GLM-5.3-Flash',
   ];
 
   let lastError: any = null;
@@ -399,7 +400,7 @@ export interface AIChatResult {
  */
 async function chatWithGemini(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const candidateModels = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+  const candidateModels = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-flash-lite-latest'];
   let lastErr: any = null;
 
   for (const modelName of candidateModels) {
@@ -429,7 +430,7 @@ async function chatWithGemini(apiKey: string, messages: AIChatMessage[], systemP
  */
 async function chatWithGroq(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
   const groq = new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' });
-  const candidateModels = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'llama-3.2-11b-vision-preview'];
+  const candidateModels = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'];
   let lastErr: any = null;
 
   for (const modelName of candidateModels) {
@@ -455,8 +456,8 @@ async function chatWithGroq(apiKey: string, messages: AIChatMessage[], systemPro
  * Chat completion helper for Hugging Face
  */
 async function chatWithHuggingFace(apiKey: string, messages: AIChatMessage[], systemPrompt: string): Promise<string> {
-  const hf = new OpenAI({ apiKey, baseURL: 'https://router.huggingface.co/hf-inference/v1' });
-  const candidateModels = ['Qwen/Qwen2.5-72B-Instruct', 'Qwen/Qwen2.5-Coder-32B-Instruct', 'meta-llama/Llama-3.2-3B-Instruct'];
+  const hf = new OpenAI({ apiKey, baseURL: 'https://router.huggingface.co/v1' });
+  const candidateModels = ['Qwen/Qwen3.8-27B', 'deepseek-ai/DeepSeek-V4.1-Flash', 'zai-org/GLM-5.3-Flash'];
   let lastErr: any = null;
 
   for (const modelName of candidateModels) {
