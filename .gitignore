@@ -42,3 +42,6 @@ scratch
 .gemini
 *.txt
 *.pem
+
+# OAuth / credential files
+client_secret_*.json

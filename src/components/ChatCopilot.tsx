@@ -1,5 +1,61 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Sparkles, Bot, User, RefreshCw, Zap, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+const markdownComponents = {
+  p: ({ children }: any) => <p className="mb-2.5 last:mb-0 leading-relaxed">{children}</p>,
+  h1: ({ children }: any) => <h1 className="text-sm font-bold text-white mt-3 mb-2 first:mt-0">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-sm font-bold text-white mt-3 mb-2 first:mt-0">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-xs font-bold uppercase tracking-wide text-amber mt-3 mb-1.5 first:mt-0">{children}</h3>,
+  h4: ({ children }: any) => <h4 className="text-xs font-bold text-gray-200 mt-2.5 mb-1 first:mt-0">{children}</h4>,
+  ul: ({ children }: any) => <ul className="list-disc pl-4 mb-2.5 space-y-1">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal pl-4 mb-2.5 space-y-1">{children}</ol>,
+  li: ({ children }: any) => <li className="leading-relaxed">{children}</li>,
+  strong: ({ children }: any) => <strong className="font-bold text-white">{children}</strong>,
+  em: ({ children }: any) => <em className="italic text-gray-300">{children}</em>,
+  hr: () => <hr className="my-3 border-navy-700" />,
+  a: ({ href, children }: any) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-amber underline hover:text-amber-hover">
+      {children}
+    </a>
+  ),
+  code: ({ inline, className, children }: any) => {
+    if (inline) {
+      return (
+        <code className="px-1.5 py-0.5 rounded bg-navy-950 border border-navy-700 text-amber text-[11px] font-mono">
+          {children}
+        </code>
+      );
+    }
+    const language = /language-(\w+)/.exec(className || '')?.[1];
+    return (
+      <div className="my-2.5">
+        {language && (
+          <div className="text-[10px] uppercase font-bold text-gray-400 bg-navy-950 border border-b-0 border-navy-700 rounded-t-lg px-3 py-1">
+            {language}
+          </div>
+        )}
+        <pre
+          className={`overflow-x-auto bg-navy-950 border border-navy-700 p-3 text-[11px] font-mono text-gray-100 ${
+            language ? 'rounded-b-lg' : 'rounded-lg'
+          }`}
+        >
+          <code>{children}</code>
+        </pre>
+      </div>
+    );
+  },
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto my-2.5">
+      <table className="min-w-full text-xs border border-navy-700 rounded-lg">{children}</table>
+    </div>
+  ),
+  th: ({ children }: any) => (
+    <th className="px-2.5 py-1.5 bg-navy-950 border border-navy-700 text-left font-bold text-white">{children}</th>
+  ),
+  td: ({ children }: any) => <td className="px-2.5 py-1.5 border border-navy-700">{children}</td>,
+};
 
 interface ChatMessage {
   id: string;
@@ -204,8 +260,14 @@ export const ChatCopilot: React.FC<ChatCopilotProps> = ({ reportId, reportTitle 
                     </div>
                   )}
 
-                  <div className="whitespace-pre-wrap font-sans text-xs sm:text-sm">
-                    {msg.content}
+                  <div className="font-sans text-xs sm:text-sm">
+                    {msg.role === 'assistant' ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    )}
                   </div>
                 </div>
 
