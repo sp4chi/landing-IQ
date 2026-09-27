@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { dbService } from '../src/db/index.js';
 import { executeAIChat, AIChatMessage } from './ai-provider.js';
+import { chatRateLimiter } from './rateLimiters.js';
 
 export const chatRouter = Router();
 
@@ -63,7 +64,7 @@ const chatSchema = z.object({
   ).min(1, 'At least one message is required'),
 });
 
-chatRouter.post('/chat-copilot', async (req, res) => {
+chatRouter.post('/chat-copilot', chatRateLimiter, async (req, res) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: 'You must be logged in to chat with the CRO Copilot' });
   }

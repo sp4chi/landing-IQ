@@ -72,16 +72,34 @@ if (pgPool) {
   console.log('Using MemoryStore for session management.');
 }
 
+// A hardcoded fallback secret would be a real vulnerability once it's public
+// (as this one now is, in git history) - anyone could forge session cookies
+// for any deployment that forgets to set SESSION_SECRET. Fail fast instead.
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'SESSION_SECRET must be set in production. Refusing to start with a fallback secret.'
+    );
+  }
+  console.warn(
+    '[Session] SESSION_SECRET not set - using an insecure dev-only fallback. Set SESSION_SECRET before deploying.'
+  );
+}
+
 app.use(
   session({
     store: sessionStore,
-    secret: process.env.SESSION_SECRET || 'landingiq_fallback_session_secret',
+    secret: sessionSecret || 'dev_only_insecure_fallback_do_not_use_in_production',
     resave: false,
     saveUninitialized: false,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
-      secure: false, // Allow session cookies on HTTP EC2 IP and HTTPS
+      // 'auto' marks the cookie Secure when the connection is HTTPS - including
+      // behind a reverse proxy, since trust proxy (above) makes Express respect
+      // X-Forwarded-Proto - while still working over plain HTTP where needed.
+      secure: 'auto',
       sameSite: 'lax',
     },
   })

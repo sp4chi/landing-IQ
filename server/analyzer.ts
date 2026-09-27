@@ -4,6 +4,7 @@ import { dbService } from '../src/db/index.js';
 import { capturePageScreenshot, generateMockScreenshotBase64, ScreenshotResult } from './vision.js';
 import { executeAIAnalysis } from './ai-provider.js';
 import { runLocalMLAnalysis } from './ml-analysis.js';
+import { analyzeRateLimiter } from './rateLimiters.js';
 
 export const analyzerRouter = Router();
 
@@ -204,7 +205,7 @@ function generateFallbackAudit(content: string, screenshotData?: ScreenshotResul
 }
 
 // POST /api/analyze
-analyzerRouter.post('/analyze', async (req, res, next) => {
+analyzerRouter.post('/analyze', analyzeRateLimiter, async (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: 'You must be logged in to analyze landing pages' });
   }
